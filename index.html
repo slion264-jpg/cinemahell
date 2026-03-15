@@ -424,23 +424,26 @@
   }
 
   @media (max-width: 640px) {
+    /* 오버레이 항상 표시 */
+    .card-overlay { opacity: 1; pointer-events: auto; }
+
+    /* 별점 패널: 별 사이즈 축소 + 카드 안에 맞게 위치 조정 */
+    .star-wrap { width: 20px; height: 20px; }
+    .star-wrap svg { width: 20px; height: 20px; }
+    .star-panel { left: 0; top: 32px; padding: 5px 6px; gap: 0; }
+
     /* 헤더 */
     .site-header { padding: 0 16px; height: 52px; }
     .logo { font-size: 18px; }
     .bookmark-toggle { padding: 6px 10px; font-size: 12px; gap: 5px; }
 
-    /* 필터 바: PC 2열 → 모바일 단일 컬럼 */
+    /* 필터 바 */
     .filter-bar { padding: 10px 14px; gap: 8px; display: flex; flex-direction: column; }
     .filter-top-row { display: flex; }
-    .filter-side { display: none; }  /* PC 전용 검색창 숨김 */
-
-    /* 모바일: 필터 토글 버튼 표시 */
+    .filter-side { display: none; }
     .filter-toggle-btn { display: flex; }
-
-    /* 모바일에서는 필터 드로어 기본 숨김 */
     .filter-drawer { display: none; }
     .filter-drawer.open { display: flex; }
-
     .filter-label { font-size: 10px; min-width: 32px; }
     .filter-btn { padding: 5px 9px; font-size: 11px; }
 
@@ -755,12 +758,6 @@
 // ============================================================
 const RAW_DATA = [
   {
-    "date": "03.13",
-    "year": "2026",
-    "recommender": "게스트",
-    "title": "아마데우스 (1984) - 김현철"
-  },   
-  {
     "date": "03.06",
     "year": "2026",
     "recommender": "라이너",
@@ -940,7 +937,7 @@ const RAW_DATA = [
     "recommender": "전찬일",
     "title": "마산시절",
     "subtitle": "연극",
-    "posterOverride": "posters/25014500_p.gif",
+    "posterOverride": "http://localhost:8080/25014500_p.gif",
     "tmdbSkip": true
   },
   {
@@ -1111,7 +1108,7 @@ const RAW_DATA = [
     "recommender": "전찬일",
     "title": "로젤",
     "subtitle": "연극",
-    "posterOverride": "posters/rosel_p.png",
+    "posterOverride": "http://localhost:8080/rosel_p.png",
     "tmdbSkip": true
   },
   {
@@ -1966,7 +1963,7 @@ const RAW_DATA = [
     "year": "2025",
     "recommender": "최광희",
     "title": "바디콘서트",
-    "posterOverride": "posters/bodyconcert_p.gif"
+    "posterOverride": "http://localhost:8080/bodyconcert_p.gif"
   },
   {
     "date": "02.28",
@@ -2099,7 +2096,7 @@ const RAW_DATA = [
     "year": "2025",
     "recommender": "전찬일",
     "title": "여파 (2021)",
-    "posterOverride": "posters/yeopa_p.jpg",
+    "posterOverride": "http://localhost:8080/yeopa_p.jpg",
   },
   {
     "date": "01.10",
@@ -7141,7 +7138,7 @@ function renderCard(m) {
   const ribbonSvg = `<svg class="ribbon-icon" viewBox="0 0 18 24" xmlns="http://www.w3.org/2000/svg"><path d="M2 2 H16 V22 L9 16 L2 22 Z"/></svg>`;
 
   return `
-<div class="movie-card ${isBookmarked ? 'bookmarked' : ''}" data-key="${key.replace(/"/g,'&quot;')}" onclick="window.open('${googleUrl}','_blank')" style="cursor:pointer">
+<div class="movie-card ${isBookmarked ? 'bookmarked' : ''}" data-key="${key.replace(/"/g,'&quot;')}" onclick="if(window.innerWidth>640)window.open('${googleUrl}','_blank')" style="cursor:pointer">
   <div class="poster-wrap">
     ${posterSrc ? `<img class="poster-img" src="${posterSrc}" alt="${cleanTitle}" loading="lazy" onerror="this.style.display='none'">` : `<div class="poster-placeholder"><div class="ph-icon">🎬</div><div class="ph-title">${cleanTitle}</div></div>`}
     <div class="card-overlay">
