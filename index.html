@@ -7255,7 +7255,6 @@ function buildStarPanel(key, currentRating) {
 
 function toggleStarPanel(e, key, btn) {
   e.stopPropagation();
-  // 이미 별점이 있으면 패널 열지 않고 바로 취소
   if (state.myRatings[key]) {
     delete state.myRatings[key];
     localStorage.setItem('cinemaMyRatings', JSON.stringify(state.myRatings));
@@ -7271,7 +7270,43 @@ function toggleStarPanel(e, key, btn) {
     const cur = state.myRatings[key] || 0;
     panel.innerHTML = buildStarPanel(key, cur);
     panel.classList.add('open');
+    attachStarPanelTouch(panel, key);
   }
+}
+
+// 터치 드래그 별점 입력 (모바일용)
+function attachStarPanelTouch(panel, key) {
+  let pendingVal = null;
+
+  function getValFromTouch(touch) {
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (!el) return null;
+    const half = el.closest('.star-half-l, .star-half-r');
+    if (!half) return null;
+    const wrap = half.closest('.star-wrap');
+    if (!wrap) return null;
+    const star = parseInt(wrap.dataset.star);
+    return half.classList.contains('star-half-l') ? star - 0.5 : star;
+  }
+
+  panel.addEventListener('touchstart', e => {
+    e.stopPropagation();
+    const val = getValFromTouch(e.touches[0]);
+    if (val !== null) { pendingVal = val; previewStars(key, val); }
+  }, { passive: true });
+
+  panel.addEventListener('touchmove', e => {
+    e.stopPropagation();
+    e.preventDefault();
+    const val = getValFromTouch(e.touches[0]);
+    if (val !== null) { pendingVal = val; previewStars(key, val); }
+  }, { passive: false });
+
+  panel.addEventListener('touchend', e => {
+    e.stopPropagation();
+    if (pendingVal !== null) setMyRating(key, pendingVal);
+    pendingVal = null;
+  });
 }
 
 function previewStars(key, val) {
