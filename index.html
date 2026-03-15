@@ -56,22 +56,26 @@
   .filter-bar {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 12px 24px;
-    display: flex; flex-direction: column; gap: 10px;
+    padding: 14px 24px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto;
+    gap: 0 24px;
+    align-items: start;
   }
   /* 항상 노출되는 상단 행: 검색 + 필터토글 */
   .filter-top-row {
     display: flex; align-items: center; gap: 10px;
+    grid-column: 1 / -1; /* 모바일에서만 사용, PC에서는 숨김 */
   }
   .search-box {
-    flex: 1;
     display: flex; align-items: center; gap: 8px;
     background: var(--surface2); border: 1px solid var(--border);
     border-radius: 20px; padding: 7px 14px;
   }
   .search-box input {
     background: none; border: none; outline: none;
-    color: var(--text); font-size: 13px; width: 100%;
+    color: var(--text); font-size: 13px; width: 200px;
   }
   .search-box input::placeholder { color: var(--text3); }
   .search-icon { color: var(--text3); font-size: 14px; flex-shrink: 0; }
@@ -91,9 +95,19 @@
     border-radius: 10px; padding: 1px 6px; font-size: 11px; font-weight: 700;
   }
 
-  /* 필터 드로어 */
+  /* PC: 필터 드로어 = 왼쪽 컬럼 */
   .filter-drawer {
     display: flex; flex-direction: column; gap: 8px;
+    grid-column: 1;
+    grid-row: 1;
+  }
+  /* PC: 검색+기타 = 오른쪽 컬럼 */
+  .filter-side {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex; flex-direction: column; gap: 10px;
+    align-items: flex-end;
+    padding-top: 2px;
   }
   .filter-row {
     display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
@@ -359,14 +373,68 @@
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
   /* RESPONSIVE */
+  /* PC 전용: filter-side 오늘 볼 영화 버튼 */
+  .picker-btn-pc {
+    width: 120px; height: 110px;
+    padding: 12px 8px 14px;
+    border-radius: 14px;
+    border: 1px solid #c0392b;
+    background: linear-gradient(160deg, #1a0a0a 0%, #2d0a0a 50%, #1a0000 100%);
+    color: #fff;
+    cursor: pointer;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: space-between;
+    box-shadow: 0 4px 20px rgba(229,9,20,0.3), inset 0 1px 0 rgba(255,100,100,0.15);
+    transition: all 0.22s;
+    position: relative; overflow: hidden;
+  }
+  .picker-btn-pc::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(229,9,20,0.18) 0%, transparent 60%);
+    border-radius: 14px;
+  }
+  .picker-btn-pc:hover {
+    border-color: var(--accent);
+    box-shadow: 0 6px 28px rgba(229,9,20,0.55), inset 0 1px 0 rgba(255,120,120,0.25);
+    transform: translateY(-2px);
+  }
+  .picker-btn-pc:active { transform: translateY(0); }
+  .picker-btn-pc .pc-icon {
+    font-size: 44px; line-height: 1;
+    filter: drop-shadow(0 2px 8px rgba(229,9,20,0.6));
+  }
+  .picker-btn-pc .pc-label {
+    font-size: 12px; font-weight: 800;
+    letter-spacing: 0.3px; color: #fff;
+    text-shadow: 0 1px 6px rgba(229,9,20,0.8);
+    white-space: nowrap;
+  }
+
+  /* PC에서 stats-bar 뽑기 버튼 숨김 */
+  @media (min-width: 641px) {
+    .picker-btn-mobile { display: none !important; }
+    .picker-btn-pc { display: flex; }
+    .filter-top-row { display: none; }
+  }
+  /* 모바일에서 filter-side 뽑기 버튼 숨김 */
+  @media (max-width: 640px) {
+    .picker-btn-pc { display: none !important; }
+    .picker-btn-mobile { display: flex !important; }
+  }
+
   @media (max-width: 640px) {
     /* 헤더 */
     .site-header { padding: 0 16px; height: 52px; }
     .logo { font-size: 18px; }
     .bookmark-toggle { padding: 6px 10px; font-size: 12px; gap: 5px; }
 
-    /* 필터 바 */
-    .filter-bar { padding: 10px 14px; gap: 8px; }
+    /* 필터 바: PC 2열 → 모바일 단일 컬럼 */
+    .filter-bar { padding: 10px 14px; gap: 8px; display: flex; flex-direction: column; }
+    .filter-top-row { display: flex; }
+    .filter-side { display: none; }  /* PC 전용 검색창 숨김 */
+
+    /* 모바일: 필터 토글 버튼 표시 */
     .filter-toggle-btn { display: flex; }
 
     /* 모바일에서는 필터 드로어 기본 숨김 */
@@ -474,11 +542,11 @@
 
 <!-- FILTERS -->
 <div class="filter-bar">
-  <!-- 항상 노출: 검색 + 필터 토글 버튼 -->
+  <!-- 모바일 전용: 검색 + 필터 토글 버튼 -->
   <div class="filter-top-row">
     <div class="search-box">
       <span class="search-icon">🔍</span>
-      <input type="text" id="searchInput" placeholder="영화 제목 검색..." oninput="renderGrid()">
+      <input type="text" id="searchInput" placeholder="영화 제목 검색..." oninput="const pc=document.getElementById('searchInputPC');if(pc)pc.value=this.value;renderGrid()">
     </div>
     <button class="filter-toggle-btn" id="filterToggleBtn" onclick="toggleFilterDrawer()">
       <span id="filterToggleIcon">⚙</span> 필터
@@ -543,6 +611,18 @@
       </div>
     </div>
   </div>
+
+  <!-- PC 전용: 오른쪽 사이드 (검색 + 오늘 볼 영화 버튼) -->
+  <div class="filter-side">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInputPC" placeholder="영화 제목 검색..." oninput="document.getElementById('searchInput').value=this.value;renderGrid()">
+    </div>
+    <button class="picker-btn-pc" onclick="openPickerModal()">
+      <span class="pc-icon">🎰</span>
+      <span class="pc-label">오늘 볼 영화</span>
+    </button>
+  </div>
 </div>
 
 <!-- STATS -->
@@ -551,7 +631,7 @@
   <span style="color:var(--text3)">·</span>
   <span id="filterDesc" style="color:var(--text3)">전체 목록</span>
   <div class="sort-group">
-    <button onclick="openPickerModal()" style="
+    <button class="picker-btn-mobile" onclick="openPickerModal()" style="
       padding:6px 14px; border-radius:6px; border:1px solid var(--border);
       background:var(--surface2); color:var(--text); font-size:13px; font-weight:700;
       cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:6px;
@@ -679,7 +759,7 @@ const RAW_DATA = [
     "year": "2026",
     "recommender": "게스트",
     "title": "아마데우스 (1984) - 김현철"
-  },  
+  },   
   {
     "date": "03.06",
     "year": "2026",
