@@ -33,18 +33,10 @@
     border-bottom: 2px solid var(--accent);
     padding: 0 24px;
     position: sticky; top: 0; z-index: 100;
-    display: flex; align-items: center; gap: 32px; height: 64px;
+    display: flex; align-items: center; height: 56px;
   }
   .logo { font-size: 22px; font-weight: 900; color: var(--accent); letter-spacing: -0.5px; white-space: nowrap; }
   .logo span { color: var(--text); }
-  .nav-tabs { display: flex; gap: 4px; }
-  .nav-tab {
-    padding: 8px 16px; border-radius: 6px; cursor: pointer;
-    font-size: 14px; font-weight: 600; color: var(--text2);
-    border: 1px solid transparent; transition: all 0.2s;
-  }
-  .nav-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .nav-tab:hover:not(.active) { background: var(--surface2); color: var(--text); }
   .header-right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
   .bookmark-toggle {
     display: flex; align-items: center; gap: 6px;
@@ -64,42 +56,69 @@
   .filter-bar {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 16px 24px;
-    display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+    padding: 12px 24px;
+    display: flex; flex-direction: column; gap: 10px;
   }
-  .filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .filter-label { font-size: 12px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+  /* 항상 노출되는 상단 행: 검색 + 필터토글 */
+  .filter-top-row {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .search-box {
+    flex: 1;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 7px 14px;
+  }
+  .search-box input {
+    background: none; border: none; outline: none;
+    color: var(--text); font-size: 13px; width: 100%;
+  }
+  .search-box input::placeholder { color: var(--text3); }
+  .search-icon { color: var(--text3); font-size: 14px; flex-shrink: 0; }
+
+  /* 필터 토글 버튼 (모바일에서만 표시) */
+  .filter-toggle-btn {
+    display: none;
+    align-items: center; gap: 6px; white-space: nowrap;
+    padding: 7px 14px; border-radius: 20px; cursor: pointer;
+    background: var(--surface2); border: 1px solid var(--border);
+    font-size: 13px; font-weight: 600; color: var(--text2);
+    transition: all 0.2s; flex-shrink: 0;
+  }
+  .filter-toggle-btn.active { border-color: var(--accent); color: var(--accent); }
+  .filter-active-badge {
+    background: var(--accent); color: #fff;
+    border-radius: 10px; padding: 1px 6px; font-size: 11px; font-weight: 700;
+  }
+
+  /* 필터 드로어 */
+  .filter-drawer {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .filter-row {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  }
+  .filter-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .filter-label { font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; min-width: 36px; }
   .filter-btn {
-    padding: 5px 12px; border-radius: 16px; font-size: 12px; font-weight: 600;
+    padding: 5px 11px; border-radius: 16px; font-size: 12px; font-weight: 600;
     cursor: pointer; border: 1px solid var(--border);
     background: var(--surface2); color: var(--text2);
     transition: all 0.18s;
   }
   .filter-btn:hover { border-color: var(--accent); color: var(--text); }
   .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .filter-divider { width: 1px; height: 28px; background: var(--border); }
-  .search-box {
-    margin-left: auto;
-    display: flex; align-items: center; gap: 8px;
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 20px; padding: 6px 14px;
-  }
-  .search-box input {
-    background: none; border: none; outline: none;
-    color: var(--text); font-size: 13px; width: 180px;
-  }
-  .search-box input::placeholder { color: var(--text3); }
-  .search-icon { color: var(--text3); font-size: 14px; }
+  .filter-divider { display: none; } /* PC에선 row 구조라 divider 불필요 */
 
   /* STATS BAR */
   .stats-bar {
-    padding: 12px 24px;
-    display: flex; align-items: center; gap: 16px;
+    padding: 10px 24px;
+    display: flex; align-items: center; gap: 12px;
     font-size: 13px; color: var(--text2);
     border-bottom: 1px solid var(--border);
   }
   .stats-count { font-weight: 700; color: var(--text); }
-  .sort-group { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .sort-group { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .sort-select {
     background: var(--surface2); border: 1px solid var(--border);
     color: var(--text); font-size: 13px; padding: 5px 10px;
@@ -340,10 +359,38 @@
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
   /* RESPONSIVE */
-  @media (max-width: 600px) {
-    .movie-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; padding: 12px; }
-    .filter-bar { padding: 12px; gap: 8px; }
-    .search-box input { width: 120px; }
+  @media (max-width: 640px) {
+    /* 헤더 */
+    .site-header { padding: 0 16px; height: 52px; }
+    .logo { font-size: 18px; }
+    .bookmark-toggle { padding: 6px 10px; font-size: 12px; gap: 5px; }
+
+    /* 필터 바 */
+    .filter-bar { padding: 10px 14px; gap: 8px; }
+    .filter-toggle-btn { display: flex; }
+
+    /* 모바일에서는 필터 드로어 기본 숨김 */
+    .filter-drawer { display: none; }
+    .filter-drawer.open { display: flex; }
+
+    .filter-label { font-size: 10px; min-width: 32px; }
+    .filter-btn { padding: 5px 9px; font-size: 11px; }
+
+    /* stats bar */
+    .stats-bar { padding: 8px 14px; gap: 8px; font-size: 12px; flex-wrap: wrap; }
+    .sort-group { margin-left: 0; width: 100%; justify-content: flex-end; gap: 6px; }
+    .sort-group button { font-size: 12px; padding: 5px 10px; }
+    .sort-select { font-size: 12px; padding: 5px 8px; }
+
+    /* 그리드 */
+    .movie-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; padding: 10px; }
+
+    /* 모달 */
+    .modal { flex-direction: column; max-height: 85vh; }
+    .modal-poster { width: 100%; height: 220px; }
+    .modal-poster img { object-position: center 20%; }
+    .modal-content { padding: 16px; }
+    .modal-title { font-size: 18px; }
   }
 
   /* OTT 로고 */
@@ -417,9 +464,6 @@
 <!-- HEADER -->
 <header class="site-header">
   <div class="logo">매불쇼 <span>시네마지옥</span></div>
-  <nav class="nav-tabs">
-    <div class="nav-tab active">🎬 시네마지옥 DB</div>
-  </nav>
   <div class="header-right">
     <div class="bookmark-toggle" id="bookmarkToggle" onclick="toggleBookmarkView()">
       <svg width="14" height="18" viewBox="0 0 18 24" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><path d="M2 2 H16 V22 L9 16 L2 22 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" id="headerRibbonPath"/></svg>
@@ -430,65 +474,74 @@
 
 <!-- FILTERS -->
 <div class="filter-bar">
-  <div class="filter-group">
-    <span class="filter-label">추천자</span>
-    <button class="filter-btn active" onclick="setFilter('recommender','전체')">전체</button>
-    <button class="filter-btn" onclick="setFilter('recommender','라이너')">라이너</button>
-    <button class="filter-btn" onclick="setFilter('recommender','전찬일')">전찬일</button>
-    <button class="filter-btn" onclick="setFilter('recommender','최광희')">최광희</button>
-    <button class="filter-btn" onclick="setFilter('recommender','거의없다')">거의없다</button>
-    <button class="filter-btn" onclick="setFilter('recommender','최욱')">최욱</button>
-    <button class="filter-btn" onclick="setFilter('recommender','정영진')">정영진</button>
-    <button class="filter-btn" onclick="setFilter('recommender','게스트')">게스트</button>
+  <!-- 항상 노출: 검색 + 필터 토글 버튼 -->
+  <div class="filter-top-row">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="영화 제목 검색..." oninput="renderGrid()">
+    </div>
+    <button class="filter-toggle-btn" id="filterToggleBtn" onclick="toggleFilterDrawer()">
+      <span id="filterToggleIcon">⚙</span> 필터
+      <span id="filterActiveCount" class="filter-active-badge" style="display:none">0</span>
+    </button>
   </div>
 
-  <div class="filter-divider"></div>
-
-  <div class="filter-group">
-    <span class="filter-label">연도</span>
-    <button class="filter-btn active" onclick="setFilter('year','전체')">전체</button>
-    <button class="filter-btn" onclick="setFilter('year','2026')">2026</button>
-    <button class="filter-btn" onclick="setFilter('year','2025')">2025</button>
-    <button class="filter-btn" onclick="setFilter('year','2024')">2024</button>
-    <button class="filter-btn" onclick="setFilter('year','2023')">2023</button>
-    <button class="filter-btn" onclick="setFilter('year','2022')">2022</button>
-  </div>
-
-  <div class="filter-divider"></div>
-
-  <div class="filter-group">
-    <span class="filter-label">장르</span>
-    <button class="filter-btn active" id="genreAll" onclick="setFilter('genre','전체')">전체</button>
-    <button class="filter-btn" onclick="setFilter('genre','드라마')">드라마</button>
-    <button class="filter-btn" onclick="setFilter('genre','액션')">액션</button>
-    <button class="filter-btn" onclick="setFilter('genre','스릴러')">스릴러</button>
-    <button class="filter-btn" onclick="setFilter('genre','코미디')">코미디</button>
-    <button class="filter-btn" onclick="setFilter('genre','SF')">SF</button>
-    <button class="filter-btn" onclick="setFilter('genre','다큐멘터리')">다큐멘터리</button>
-    <button class="filter-btn" onclick="setFilter('genre','애니메이션')">애니메이션</button>
-  </div>
-
-  <div class="filter-divider"></div>
-
-  <div class="filter-group">
-    <span class="filter-label">플랫폼</span>
-    <button class="filter-btn active" onclick="setFilter('platform','전체')">전체</button>
-    <button class="filter-btn" onclick="setFilter('platform','Netflix')">넷플릭스</button>
-    <button class="filter-btn" onclick="setFilter('platform','Wavve')">웨이브</button>
-    <button class="filter-btn" onclick="setFilter('platform','Watcha')">왓챠</button>
-    <button class="filter-btn" onclick="setFilter('platform','Disney+')">디즈니+</button>
-    <button class="filter-btn" onclick="setFilter('platform','Coupang')">쿠팡플레이</button>
-  </div>
-
-  <div class="search-box">
-    <span class="search-icon">🔍</span>
-    <input type="text" id="searchInput" placeholder="영화 제목 검색..." oninput="renderGrid()">
-  </div>
-
-  <div class="filter-divider"></div>
-
-  <div class="filter-group">
-    <button class="filter-btn" id="excludeWatchedBtn" onclick="toggleExcludeWatched()">내가 본 작품 제외</button>
+  <!-- 필터 내용 (PC: 항상 보임 / 모바일: 토글) -->
+  <div class="filter-drawer" id="filterDrawer">
+    <div class="filter-row">
+      <div class="filter-group">
+        <span class="filter-label">추천자</span>
+        <button class="filter-btn active" onclick="setFilter('recommender','전체')">전체</button>
+        <button class="filter-btn" onclick="setFilter('recommender','라이너')">라이너</button>
+        <button class="filter-btn" onclick="setFilter('recommender','전찬일')">전찬일</button>
+        <button class="filter-btn" onclick="setFilter('recommender','최광희')">최광희</button>
+        <button class="filter-btn" onclick="setFilter('recommender','거의없다')">거의없다</button>
+        <button class="filter-btn" onclick="setFilter('recommender','최욱')">최욱</button>
+        <button class="filter-btn" onclick="setFilter('recommender','정영진')">정영진</button>
+        <button class="filter-btn" onclick="setFilter('recommender','게스트')">게스트</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-group">
+        <span class="filter-label">연도</span>
+        <button class="filter-btn active" onclick="setFilter('year','전체')">전체</button>
+        <button class="filter-btn" onclick="setFilter('year','2026')">2026</button>
+        <button class="filter-btn" onclick="setFilter('year','2025')">2025</button>
+        <button class="filter-btn" onclick="setFilter('year','2024')">2024</button>
+        <button class="filter-btn" onclick="setFilter('year','2023')">2023</button>
+        <button class="filter-btn" onclick="setFilter('year','2022')">2022</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-group">
+        <span class="filter-label">장르</span>
+        <button class="filter-btn active" id="genreAll" onclick="setFilter('genre','전체')">전체</button>
+        <button class="filter-btn" onclick="setFilter('genre','드라마')">드라마</button>
+        <button class="filter-btn" onclick="setFilter('genre','액션')">액션</button>
+        <button class="filter-btn" onclick="setFilter('genre','스릴러')">스릴러</button>
+        <button class="filter-btn" onclick="setFilter('genre','코미디')">코미디</button>
+        <button class="filter-btn" onclick="setFilter('genre','SF')">SF</button>
+        <button class="filter-btn" onclick="setFilter('genre','다큐멘터리')">다큐멘터리</button>
+        <button class="filter-btn" onclick="setFilter('genre','애니메이션')">애니메이션</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-group">
+        <span class="filter-label">플랫폼</span>
+        <button class="filter-btn active" onclick="setFilter('platform','전체')">전체</button>
+        <button class="filter-btn" onclick="setFilter('platform','Netflix')">넷플릭스</button>
+        <button class="filter-btn" onclick="setFilter('platform','Wavve')">웨이브</button>
+        <button class="filter-btn" onclick="setFilter('platform','Watcha')">왓챠</button>
+        <button class="filter-btn" onclick="setFilter('platform','Disney+')">디즈니+</button>
+        <button class="filter-btn" onclick="setFilter('platform','Coupang')">쿠팡플레이</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-group">
+        <span class="filter-label">기타</span>
+        <button class="filter-btn" id="excludeWatchedBtn" onclick="toggleExcludeWatched()">내가 본 작품 제외</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -626,7 +679,7 @@ const RAW_DATA = [
     "year": "2026",
     "recommender": "게스트",
     "title": "아마데우스 (1984) - 김현철"
-  },
+  },  
   {
     "date": "03.06",
     "year": "2026",
@@ -7182,6 +7235,7 @@ function setMyRating(key, val) {
 function toggleExcludeWatched() {
   state.excludeWatched = !state.excludeWatched;
   document.getElementById('excludeWatchedBtn').classList.toggle('active', state.excludeWatched);
+  updateFilterBadge();
   renderGrid();
 }
 
@@ -7546,12 +7600,29 @@ function showPickerResult(m) {
     `${m.recommender} 추천 · ${m.year}.${m.date}`;
 }
 
+function toggleFilterDrawer() {
+  const drawer = document.getElementById('filterDrawer');
+  const btn = document.getElementById('filterToggleBtn');
+  const isOpen = drawer.classList.contains('open');
+  drawer.classList.toggle('open', !isOpen);
+  btn.classList.toggle('active', !isOpen);
+}
+
+function updateFilterBadge() {
+  const f = state.filters;
+  const count = [f.recommender, f.year, f.genre, f.platform].filter(v => v !== '전체').length
+    + (state.excludeWatched ? 1 : 0);
+  const badge = document.getElementById('filterActiveCount');
+  if (!badge) return;
+  if (count > 0) { badge.textContent = count; badge.style.display = ''; }
+  else { badge.style.display = 'none'; }
+}
+
 // ============================================================
 // 필터
 // ============================================================
 function setFilter(type, val) {
   state.filters[type] = val;
-  // 버튼 active 상태 업데이트
   document.querySelectorAll(`.filter-btn`).forEach(btn => {
     if (btn.getAttribute('onclick') === `setFilter('${type}','${val}')`) {
       btn.classList.add('active');
@@ -7559,6 +7630,7 @@ function setFilter(type, val) {
       btn.classList.remove('active');
     }
   });
+  updateFilterBadge();
   renderGrid();
 }
 
