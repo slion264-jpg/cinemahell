@@ -52,6 +52,36 @@
     border-radius: 10px; padding: 1px 7px; font-size: 11px; font-weight: 700;
   }
 
+  /* 로그인 버튼 */
+  .login-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 20px; cursor: pointer;
+    background: var(--surface2); border: 1px solid var(--border);
+    font-size: 13px; font-weight: 600; color: var(--text2);
+    transition: all 0.2s; white-space: nowrap; flex-shrink: 0;
+  }
+  .login-btn:hover { border-color: #4285F4; color: var(--text); }
+  .google-icon { width: 15px; height: 15px; flex-shrink: 0; }
+
+  /* 유저 정보 */
+  .user-info { display: none; align-items: center; gap: 8px; position: relative; }
+  .user-avatar-wrap { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .user-avatar { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border); flex-shrink: 0; }
+  .user-name { font-size: 13px; font-weight: 600; color: var(--text2); white-space: nowrap; }
+  .user-menu {
+    display: none; position: absolute; top: 40px; right: 0;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4); z-index: 200; min-width: 110px;
+  }
+  .user-menu.open { display: block; }
+  .logout-btn {
+    width: 100%; padding: 8px 12px; border-radius: 6px;
+    background: transparent; border: none; cursor: pointer;
+    font-size: 13px; color: var(--text2); text-align: left; transition: background 0.15s;
+  }
+  .logout-btn:hover { background: var(--surface2); color: var(--text); }
+
   /* FILTERS */
   .filter-bar {
     background: var(--surface);
@@ -424,8 +454,8 @@
   }
 
   @media (max-width: 640px) {
-    /* 오버레이 항상 표시 */
-    .card-overlay { opacity: 1; pointer-events: auto; }
+    /* 오버레이 항상 표시 (모바일) */
+    .card-overlay { opacity: 1; pointer-events: auto; background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%); }
 
     /* 별점 패널: 별 사이즈 축소 + 카드 안에 맞게 위치 조정 */
     .star-wrap { width: 20px; height: 20px; }
@@ -436,6 +466,11 @@
     .site-header { padding: 0 16px; height: 52px; }
     .logo { font-size: 18px; }
     .bookmark-toggle { padding: 6px 10px; font-size: 12px; gap: 5px; }
+    /* 모바일: 로그인은 구글 아이콘만, 유저명 숨김 */
+    .login-btn { padding: 6px 8px; gap: 0; }
+    .login-label { display: none; }
+    .user-name { display: none; }
+    .user-menu { top: 36px; }
 
     /* 필터 바 */
     .filter-bar { padding: 10px 14px; gap: 8px; display: flex; flex-direction: column; }
@@ -493,17 +528,152 @@
     margin-left: auto; white-space: nowrap; flex-shrink: 0;
   }
   /* 카드 오버레이 (hover 시 북마크·평점 표시) */
+  /* 카드 오버레이 — 안 C: 상단 스트립 */
   .card-overlay {
-    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-    display: flex; align-items: flex-start; justify-content: space-between;
-    padding: 8px;
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 40px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 7px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0) 100%);
     opacity: 0; transition: opacity 0.2s;
     pointer-events: none;
+    border-radius: 12px 12px 0 0;
   }
   .movie-card:hover .card-overlay { opacity: 1; pointer-events: auto; }
+
+  /* 커뮤니티 pill — 하단 좌측 단일 배지 */
+  .comm-pill {
+    position: absolute; bottom: 7px; left: 7px;
+    background: rgba(0,0,0,0.82);
+    border: 1px solid rgba(180,80,80,0.35);
+    border-radius: 20px; padding: 2px 8px;
+    font-size: 10px; font-weight: 700;
+    color: #f5c518;
+    display: flex; align-items: center; gap: 4px;
+    pointer-events: none; white-space: nowrap;
+  }
+  .comm-pill .pill-cnt { color: #a0c4ff; }
+
   .movie-card { cursor: default; }
 
 </style>
+<!-- Firebase SDK -->
+<!-- Firebase 동적 로드 (CDN 실패 시 대체 CDN 자동 사용) -->
+<script>
+(function() {
+  const CDNS = [
+    'https://www.gstatic.com/firebasejs/8.10.1/',
+    'https://cdn.jsdelivr.net/npm/firebase@8.10.1/',
+    'https://unpkg.com/firebase@8.10.1/'
+  ];
+  const SCRIPTS = ['firebase-app.js', 'firebase-auth.js', 'firebase-firestore.js'];
+  const CFG = {
+    apiKey: "AIzaSyDFrWQulW_QMuHhj3NSfE-V4aPhqrspNV0",
+    authDomain: "cinemahell-a3f39.firebaseapp.com",
+    projectId: "cinemahell-a3f39",
+    storageBucket: "cinemahell-a3f39.firebasestorage.app",
+    messagingSenderId: "363678066624",
+    appId: "1:363678066624:web:e9830ff7658082e1ac0a25"
+  };
+
+  function loadScript(src) {
+    return new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload  = res;
+      s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  async function loadFromCDN(base) {
+    for (const file of SCRIPTS) {
+      await loadScript(base + file);
+    }
+  }
+
+  async function tryAllCDNs() {
+    for (const base of CDNS) {
+      try {
+        console.log('[FB] trying CDN:', base);
+        await loadFromCDN(base);
+        if (typeof firebase !== 'undefined') {
+          console.log('[FB] CDN loaded OK:', base);
+          return true;
+        }
+      } catch(e) {
+        console.warn('[FB] CDN failed:', base, e);
+        // 이전에 로드된 스크립트로 인해 firebase 중복 초기화 방지
+      }
+    }
+    return false;
+  }
+
+  tryAllCDNs().then(ok => {
+    if (!ok || typeof firebase === 'undefined') {
+      console.error('[FB] 모든 CDN 로드 실패');
+      document.getElementById('loginBtn') &&
+        (document.getElementById('loginBtn').title = 'Firebase 로드 실패 - 네트워크 확인');
+      return;
+    }
+
+    // ── 초기화
+    if (!firebase.apps.length) firebase.initializeApp(CFG);
+    const _auth = firebase.auth();
+    const _db   = firebase.firestore();
+    console.log('[FB] Firebase initialized');
+
+    // ── 전역 함수 등록
+    window.fbLogin = function() {
+      console.log('[FB] fbLogin called');
+      const provider = new firebase.auth.GoogleAuthProvider();
+      _auth.signInWithPopup(provider)
+        .then(r => console.log('[FB] login ok:', r.user.email))
+        .catch(e => console.error('[FB] login error:', e.code, e.message));
+    };
+    window.fbLogout = function() {
+      _auth.signOut().then(() => console.log('[FB] logout ok'));
+    };
+    window.toggleUserMenu = function() {
+      document.getElementById('userMenu')?.classList.toggle('open');
+    };
+
+    // ── 인증 상태 감지
+    _auth.onAuthStateChanged(async user => {
+      console.log('[FB] authState:', user ? user.email : 'signed out');
+      window._fbUser = user || null;
+      const loginBtn = document.getElementById('loginBtn');
+      const userInfo = document.getElementById('userInfo');
+      if (user) {
+        if (loginBtn) loginBtn.style.display = 'none';
+        if (userInfo) userInfo.style.display = 'flex';
+        const avatar = document.getElementById('userAvatar');
+        const name   = document.getElementById('userName');
+        if (avatar) avatar.src = user.photoURL || '';
+        if (name)   name.textContent = (user.displayName || '유저').split(' ')[0];
+        await window._syncFromCloud?.(user.uid);
+      } else {
+        if (loginBtn) loginBtn.style.display = 'flex';
+        if (userInfo) userInfo.style.display = 'none';
+      }
+      await window._loadCommunityStats?.();
+      if (typeof renderGrid === 'function') renderGrid();
+    });
+
+    // ── 외부 클릭 시 유저 메뉴 닫기
+    document.addEventListener('click', e => {
+      if (!e.target.closest('#userAvatarWrap') && !e.target.closest('#userMenu')) {
+        document.getElementById('userMenu')?.classList.remove('open');
+      }
+    });
+
+    // ── Firestore 헬퍼
+    window._db   = _db;
+    window._auth = _auth;
+
+  }).catch(e => console.error('[FB] init error:', e));
+})();
+</script>
 </head>
 <body>
 
@@ -539,6 +709,24 @@
     <div class="bookmark-toggle" id="bookmarkToggle" onclick="toggleBookmarkView()">
       <svg width="14" height="18" viewBox="0 0 18 24" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><path d="M2 2 H16 V22 L9 16 L2 22 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" id="headerRibbonPath"/></svg>
       내 책갈피 <span class="bookmark-count" id="bookmarkCount">0</span>
+    </div>
+    <button id="loginBtn" class="login-btn" onclick="fbLogin()">
+      <svg class="google-icon" viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      <span class="login-label">로그인</span>
+    </button>
+    <div id="userInfo" class="user-info">
+      <div class="user-avatar-wrap" id="userAvatarWrap" onclick="toggleUserMenu()">
+        <img id="userAvatar" src="" class="user-avatar">
+        <span id="userName" class="user-name"></span>
+      </div>
+      <div id="userMenu" class="user-menu">
+        <button id="logoutBtn" class="logout-btn" onclick="fbLogout()">로그아웃</button>
+      </div>
     </div>
   </div>
 </header>
@@ -943,7 +1131,7 @@ const RAW_DATA = [
     "recommender": "전찬일",
     "title": "마산시절",
     "subtitle": "연극",
-    "posterOverride": "posters/25014500_p.gif",
+    "posterOverride": "http://localhost:8080/25014500_p.gif",
     "tmdbSkip": true
   },
   {
@@ -1114,7 +1302,7 @@ const RAW_DATA = [
     "recommender": "전찬일",
     "title": "로젤",
     "subtitle": "연극",
-    "posterOverride": "posters/rosel_p.png",
+    "posterOverride": "http://localhost:8080/rosel_p.png",
     "tmdbSkip": true
   },
   {
@@ -1969,7 +2157,7 @@ const RAW_DATA = [
     "year": "2025",
     "recommender": "최광희",
     "title": "바디콘서트",
-    "posterOverride": "posters/bodyconcert_p.gif"
+    "posterOverride": "http://localhost:8080/bodyconcert_p.gif"
   },
   {
     "date": "02.28",
@@ -2102,7 +2290,7 @@ const RAW_DATA = [
     "year": "2025",
     "recommender": "전찬일",
     "title": "여파 (2021)",
-    "posterOverride": "posters/yeopa_p.jpg",
+    "posterOverride": "http://localhost:8080/yeopa_p.jpg",
   },
   {
     "date": "01.10",
@@ -7140,13 +7328,18 @@ function renderCard(m) {
 
   const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(cleanTitle + (releaseYear ? ` (${releaseYear})` : '') + ' 영화')}`;
 
-  // 리본 아이콘 SVG
+  // 커뮤니티 pill (하단 좌측) — 😈 악마 아이콘 + 평균 + 시청자수
+  const cs = (window._communityStats || {})[key];
+  const commPillHtml = (cs && cs.count >= 1)
+    ? `<div class="comm-pill">😈 ${cs.avg.toFixed(1)}<span class="pill-cnt">· 👁 ${cs.count}</span></div>` : '';
+
   const ribbonSvg = `<svg class="ribbon-icon" viewBox="0 0 18 24" xmlns="http://www.w3.org/2000/svg"><path d="M2 2 H16 V22 L9 16 L2 22 Z"/></svg>`;
 
   return `
 <div class="movie-card ${isBookmarked ? 'bookmarked' : ''}" data-key="${key.replace(/"/g,'&quot;')}" onclick="if(window.innerWidth>640)window.open('${googleUrl}','_blank')" style="cursor:pointer">
   <div class="poster-wrap">
     ${posterSrc ? `<img class="poster-img" src="${posterSrc}" alt="${cleanTitle}" loading="lazy" onerror="this.style.display='none'">` : `<div class="poster-placeholder"><div class="ph-icon">🎬</div><div class="ph-title">${cleanTitle}</div></div>`}
+    ${commPillHtml}
     <div class="card-overlay">
       <div class="watched-btn ${myRating ? 'rated' : ''}" onclick="event.stopPropagation();toggleStarPanel(event,'${key.replace(/'/g,"\\'")}',this)" title="내가 본 영화">
         <span style="font-size:11px;font-weight:700;letter-spacing:-0.5px">${myRating ? `☆ ${myRating}` : '☆'}</span>
@@ -7264,6 +7457,8 @@ function toggleStarPanel(e, key, btn) {
   if (state.myRatings[key]) {
     delete state.myRatings[key];
     localStorage.setItem('cinemaMyRatings', JSON.stringify(state.myRatings));
+    window._syncToCloud?.();           // 클라우드에도 취소 반영
+    window._updateMovieStat?.(key, null); // 커뮤니티 집계에서 해당 유저 점수 제거
     renderGrid();
     return;
   }
@@ -7341,11 +7536,14 @@ function resetStarPreview(key, cur) {
 
 function setMyRating(key, val) {
   if (state.myRatings[key] === val) {
-    delete state.myRatings[key];
+    delete state.myRatings[key];  // 같은 값 재클릭 → 취소
   } else {
-    state.myRatings[key] = val;
+    state.myRatings[key] = val;   // 신규 또는 수정
   }
+  const newVal = state.myRatings[key] || null;
   localStorage.setItem('cinemaMyRatings', JSON.stringify(state.myRatings));
+  window._syncToCloud?.();
+  window._updateMovieStat?.(key, newVal); // oldVal 불필요 — DB에서 직접 재계산
   document.querySelectorAll('.star-panel.open').forEach(p => p.classList.remove('open'));
   renderGrid();
 }
@@ -7767,6 +7965,7 @@ function toggleBookmark(key) {
   }
   localStorage.setItem('cinemaBookmarks', JSON.stringify([...state.bookmarks]));
   document.getElementById('bookmarkCount').textContent = state.bookmarks.size;
+  window._syncToCloud?.();
   renderGrid();
 }
 
@@ -7931,6 +8130,114 @@ function saveEditsToStorage() {
 // ============================================================
 document.getElementById('bookmarkCount').textContent = state.bookmarks.size;
 renderGrid();
+
+// ============================================================
+// Firebase 연동
+// ============================================================
+window._communityStats = {}; // { movieKey: { avg, count } }
+
+// ── Firebase 연동 헬퍼 (compat API)
+// ============================================================
+
+window._communityStats = {};
+
+window._loadCommunityStats = async function() {
+  if (!window._db) return;
+  try {
+    const snap = await window._db.collection('movieStats').get();
+    const stats = {};
+    snap.forEach(d => { stats[d.id] = d.data(); });
+    window._communityStats = stats;
+    console.log('[FB] communityStats loaded', Object.keys(stats).length);
+  } catch(e) { console.warn('[FB] communityStats load failed', e); }
+};
+
+window._syncFromCloud = async function(uid) {
+  if (!window._db) return;
+  try {
+    const snap = await window._db.collection('users').doc(uid).get();
+    if (!snap.exists) return;
+    const data = snap.data();
+    if (data.bookmarks) {
+      state.bookmarks = new Set(data.bookmarks);
+      localStorage.setItem('cinemaBookmarks', JSON.stringify([...state.bookmarks]));
+      const el = document.getElementById('bookmarkCount');
+      if (el) el.textContent = state.bookmarks.size;
+    }
+    if (data.myRatings) {
+      state.myRatings = data.myRatings;
+      localStorage.setItem('cinemaMyRatings', JSON.stringify(state.myRatings));
+    }
+    console.log('[FB] syncFromCloud ok');
+  } catch(e) { console.warn('[FB] syncFromCloud failed', e); }
+};
+
+window._syncToCloud = async function() {
+  if (!window._fbUser || !window._db) return;
+  try {
+    // merge:true 를 쓰면 삭제된 키가 Firestore에 남아 복원됨
+    // → myRatings는 항상 현재 상태 전체로 덮어씀
+    const ref = window._db.collection('users').doc(window._fbUser.uid);
+    const snap = await ref.get();
+    const existing = snap.exists ? snap.data() : {};
+    await ref.set({
+      ...existing,
+      bookmarks: [...state.bookmarks],
+      myRatings: state.myRatings,   // 전체 교체 (삭제된 키 반영)
+      updatedAt: Date.now()
+    });
+    console.log('[FB] syncToCloud ok, ratings:', Object.keys(state.myRatings).length);
+  } catch(e) { console.warn('[FB] syncToCloud failed', e); }
+};
+
+window._updateMovieStat = async function(key, newVal) {
+  if (!window._db || !window._fbUser) return;
+  const uid = window._fbUser.uid;
+  try {
+    const userRatingRef = window._db
+      .collection('movieStats').doc(key)
+      .collection('ratings').doc(uid);
+
+    if (newVal === null || newVal === undefined) {
+      await userRatingRef.delete();
+      console.log('[FB] rating deleted', key, uid);
+    } else {
+      await userRatingRef.set({ score: newVal, updatedAt: Date.now() });
+      console.log('[FB] rating set', key, uid, newVal);
+    }
+
+    // 전체 유저 평점 재집계
+    const allSnap = await window._db
+      .collection('movieStats').doc(key)
+      .collection('ratings').get();
+
+    let totalScore = 0, count = 0;
+    allSnap.forEach(d => { totalScore += d.data().score || 0; count++; });
+    const avg = count > 0 ? Math.round((totalScore / count) * 10) / 10 : 0;
+
+    await window._db.collection('movieStats').doc(key).set(
+      { totalScore, count, avg }, { merge: true }
+    );
+    // 집계 완료 후 해당 카드의 커뮤니티 pill만 직접 교체 (renderGrid 재호출 없이)
+    window._communityStats[key] = avg > 0 ? { avg, count } : null;
+    console.log('[FB] movieStat recalculated', key, '→ avg:', avg, 'count:', count);
+
+    const card = document.querySelector(`.movie-card[data-key="${key.replace(/"/g,'&quot;')}"]`);
+    if (card) {
+      const oldPill = card.querySelector('.comm-pill');
+      if (avg > 0) {
+        const newPill = document.createElement('div');
+        newPill.className = 'comm-pill';
+        newPill.innerHTML = `😈 ${avg.toFixed(1)}<span class="pill-cnt">· 👁 ${count}</span>`;
+        if (oldPill) oldPill.replaceWith(newPill);
+        else card.querySelector('.poster-wrap')?.appendChild(newPill);
+      } else {
+        oldPill?.remove();
+      }
+    }
+  } catch(e) { console.warn('[FB] updateMovieStat failed', e); }
+};
+
 </script>
 </body>
 </html>
