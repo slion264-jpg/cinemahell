@@ -632,18 +632,39 @@
         .catch(e => console.error('[FB] login error:', e.code, e.message));
     };
     window.fbLogout = function() {
-      _auth.signOut().then(() => console.log('[FB] logout ok'));
+      _auth.signOut().then(() => {
+        console.log('[FB] logout ok');
+        // 로그아웃 시 로컬 개인화 데이터 초기화
+        state.bookmarks = new Set();
+        state.myRatings = {};
+        localStorage.removeItem('cinemaBookmarks');
+        localStorage.removeItem('cinemaMyRatings');
+        document.getElementById('bookmarkCount').textContent = '0';
+        renderGrid();
+      });
     };
     window.toggleUserMenu = function() {
       document.getElementById('userMenu')?.classList.toggle('open');
     };
 
     // ── 인증 상태 감지
+    let _prevUid = null;
     _auth.onAuthStateChanged(async user => {
       console.log('[FB] authState:', user ? user.email : 'signed out');
-      window._fbUser = user || null;
       const loginBtn = document.getElementById('loginBtn');
       const userInfo = document.getElementById('userInfo');
+
+      // 계정이 바뀌었거나 로그아웃된 경우 → 로컬 데이터 초기화
+      if (_prevUid && _prevUid !== (user?.uid || null)) {
+        state.bookmarks = new Set();
+        state.myRatings = {};
+        localStorage.removeItem('cinemaBookmarks');
+        localStorage.removeItem('cinemaMyRatings');
+        document.getElementById('bookmarkCount').textContent = '0';
+      }
+      _prevUid = user?.uid || null;
+      window._fbUser = user || null;
+
       if (user) {
         if (loginBtn) loginBtn.style.display = 'none';
         if (userInfo) userInfo.style.display = 'flex';
@@ -651,6 +672,7 @@
         const name   = document.getElementById('userName');
         if (avatar) avatar.src = user.photoURL || '';
         if (name)   name.textContent = (user.displayName || '유저').split(' ')[0];
+        // 새 계정 클라우드 데이터 로드
         await window._syncFromCloud?.(user.uid);
       } else {
         if (loginBtn) loginBtn.style.display = 'flex';
@@ -1131,7 +1153,7 @@ const RAW_DATA = [
     "recommender": "전찬일",
     "title": "마산시절",
     "subtitle": "연극",
-    "posterOverride": "posters/25014500_p.gif",
+    "posterOverride": "http://localhost:8080/25014500_p.gif",
     "tmdbSkip": true
   },
   {
@@ -1302,7 +1324,7 @@ const RAW_DATA = [
     "recommender": "전찬일",
     "title": "로젤",
     "subtitle": "연극",
-    "posterOverride": "posters/rosel_p.png",
+    "posterOverride": "http://localhost:8080/rosel_p.png",
     "tmdbSkip": true
   },
   {
@@ -2157,7 +2179,7 @@ const RAW_DATA = [
     "year": "2025",
     "recommender": "최광희",
     "title": "바디콘서트",
-    "posterOverride": "posters/bodyconcert_p.gif"
+    "posterOverride": "http://localhost:8080/bodyconcert_p.gif"
   },
   {
     "date": "02.28",
@@ -2290,7 +2312,7 @@ const RAW_DATA = [
     "year": "2025",
     "recommender": "전찬일",
     "title": "여파 (2021)",
-    "posterOverride": "posters/yeopa_p.jpg",
+    "posterOverride": "http://localhost:8080/yeopa_p.jpg",
   },
   {
     "date": "01.10",
