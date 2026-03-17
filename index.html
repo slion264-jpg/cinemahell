@@ -821,6 +821,7 @@
       <div class="filter-group">
         <span class="filter-label">기타</span>
         <button class="filter-btn" id="excludeWatchedBtn" onclick="toggleExcludeWatched()">내가 본 작품 제외</button>
+        <button class="filter-btn" id="showWatchedOnlyBtn" onclick="toggleShowWatchedOnly()">내가 본 작품만</button>
       </div>
     </div>
   </div>
@@ -1153,7 +1154,7 @@ const RAW_DATA = [
     "recommender": "전찬일",
     "title": "마산시절",
     "subtitle": "연극",
-    "posterOverride": "posters/25014500_p.gif",
+    "posterOverride": "http://localhost:8080/25014500_p.gif",
     "tmdbSkip": true
   },
   {
@@ -1324,7 +1325,7 @@ const RAW_DATA = [
     "recommender": "전찬일",
     "title": "로젤",
     "subtitle": "연극",
-    "posterOverride": "posters/rosel_p.png",
+    "posterOverride": "http://localhost:8080/rosel_p.png",
     "tmdbSkip": true
   },
   {
@@ -2179,7 +2180,7 @@ const RAW_DATA = [
     "year": "2025",
     "recommender": "최광희",
     "title": "바디콘서트",
-    "posterOverride": "posters/bodyconcert_p.gif"
+    "posterOverride": "http://localhost:8080/bodyconcert_p.gif"
   },
   {
     "date": "02.28",
@@ -2312,7 +2313,7 @@ const RAW_DATA = [
     "year": "2025",
     "recommender": "전찬일",
     "title": "여파 (2021)",
-    "posterOverride": "posters/yeopa_p.jpg",
+    "posterOverride": "http://localhost:8080/yeopa_p.jpg",
   },
   {
     "date": "01.10",
@@ -6995,6 +6996,7 @@ let state = {
   loadingSet: new Set(),
   myRatings: JSON.parse(localStorage.getItem('cinemaMyRatings') || '{}'), // key → 0.5~5
   excludeWatched: false,
+  showWatchedOnly: false,
 };
 
 // ============================================================
@@ -7058,6 +7060,7 @@ function filterMovies() {
   return RAW_DATA.filter(m => {
     if (state.showBookmarksOnly && !state.bookmarks.has(getMovieKey(m))) return false;
     if (state.excludeWatched && state.myRatings[getMovieKey(m)]) return false;
+    if (state.showWatchedOnly && !state.myRatings[getMovieKey(m)]) return false;
     if (recommender !== '전체' && m.recommender !== recommender) return false;
     if (year !== '전체' && m.year !== year) return false;
     // 검색어: 제목에서 게스트명 제외한 순수 제목으로 매칭
@@ -7572,7 +7575,24 @@ function setMyRating(key, val) {
 
 function toggleExcludeWatched() {
   state.excludeWatched = !state.excludeWatched;
+  // 두 옵션은 동시에 활성화 불가
+  if (state.excludeWatched) {
+    state.showWatchedOnly = false;
+    document.getElementById('showWatchedOnlyBtn').classList.remove('active');
+  }
   document.getElementById('excludeWatchedBtn').classList.toggle('active', state.excludeWatched);
+  updateFilterBadge();
+  renderGrid();
+}
+
+function toggleShowWatchedOnly() {
+  state.showWatchedOnly = !state.showWatchedOnly;
+  // 두 옵션은 동시에 활성화 불가
+  if (state.showWatchedOnly) {
+    state.excludeWatched = false;
+    document.getElementById('excludeWatchedBtn').classList.remove('active');
+  }
+  document.getElementById('showWatchedOnlyBtn').classList.toggle('active', state.showWatchedOnly);
   updateFilterBadge();
   renderGrid();
 }
@@ -7949,7 +7969,8 @@ function toggleFilterDrawer() {
 function updateFilterBadge() {
   const f = state.filters;
   const count = [f.recommender, f.year, f.genre, f.platform].filter(v => v !== '전체').length
-    + (state.excludeWatched ? 1 : 0);
+    + (state.excludeWatched ? 1 : 0)
+    + (state.showWatchedOnly ? 1 : 0);
   const badge = document.getElementById('filterActiveCount');
   if (!badge) return;
   if (count > 0) { badge.textContent = count; badge.style.display = ''; }
