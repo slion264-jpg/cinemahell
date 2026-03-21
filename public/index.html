@@ -7008,7 +7008,7 @@ const RAW_DATA = [
 // ============================================================
 // 상태 관리
 // ============================================================
-const TMDB_KEY = 'eeb851ae2777074ea0c4d84f1e21aa12'; // TMDB Read Access Token
+// TMDB_KEY는 GitHub Actions에서 캐시 빌드 시에만 사용 (build-tmdb-cache.js)
 
 let state = {
   filters: { recommender: '전체', year: '전체', genre: '전체', platform: '전체' },
@@ -7119,156 +7119,26 @@ function filterMovies() {
 }
 
 // ============================================================
-// TMDB API
+// TMDB 캐시 (JSON 파일 로드 방식)
 // ============================================================
 const tmdbCache = {};
 
-// 한국어 제목으로 TMDB 검색이 안 되는 작품 수동 매핑
-// 형식: '제목': { id: TMDB_ID, type: 'movie' | 'tv' }
-// 한국어 제목으로 TMDB 검색이 안 되는 작품 수동 매핑
-// 형식: '제목__연도': { id: TMDB_ID, type: 'movie' | 'tv' }
-// 연도가 없는 경우: '제목__null'
-const TMDB_ID_MAP = {
-  '삼체__2024':     { id: 108545, type: 'tv' },    // 3 Body Problem (2024)
-  '탄생__2022':     { id: 881677, type: 'movie' },  // A Birth (2022)
-  '헌트__2022':     { id: 727340, type: 'movie' },  // Hunt (2022)
-  'The 8 Show__2024': { id: 156484, type: 'tv' },  // The 8 Show (2024)
-};
-
-const genreMap = {28:'액션',12:'어드벤처',16:'애니메이션',35:'코미디',80:'범죄',99:'다큐멘터리',18:'드라마',10751:'가족',14:'판타지',36:'역사',27:'공포',10402:'음악',9648:'미스터리',10749:'로맨스',878:'SF',10770:'TV영화',53:'스릴러',10752:'전쟁',37:'서부'};
-
-async function searchTMDB(title, year, mediaType = 'movie') {
-  const q = encodeURIComponent(title);
-  const yearParam = year ? (mediaType === 'tv' ? `&first_air_date_year=${year}` : `&year=${year}`) : '';
-  const res = await fetch(`https://api.themoviedb.org/3/search/${mediaType}?api_key=${TMDB_KEY}&query=${q}${yearParam}&language=ko-KR&include_adult=false`);
-  const data = await res.json();
-  return data.results || [];
-}
-
-// multi 검색: 한국어 제목으로 movie/tv 모두 검색 (번역 제목 매칭 포함)
-async function searchTMDBMulti(title, year) {
-  const q = encodeURIComponent(title);
-  const res = await fetch(`https://api.themoviedb.org/3/search/multi?api_key=${TMDB_KEY}&query=${q}&language=ko-KR&include_adult=false`);
-  const data = await res.json();
-  const results = (data.results || []).filter(r => r.media_type === 'movie' || r.media_type === 'tv');
-  if (!year) return results;
-  // 연도 일치 우선 필터 (없으면 전체 반환)
-  const matched = results.filter(r => {
-    const d = r.release_date || r.first_air_date || '';
-    return d.startsWith(year);
-  });
-  return matched.length > 0 ? matched : results;
-}
-
-async function getOttList(tmdbId, mediaType) {
+// 페이지 로드 시 tmdb-cache.json을 한 번만 fetch해서 메모리에 저장
+async function loadTMDBCache() {
   try {
-    const endpoint = mediaType === 'tv'
-      ? `https://api.themoviedb.org/3/tv/${tmdbId}/watch/providers?api_key=${TMDB_KEY}`
-      : `https://api.themoviedb.org/3/movie/${tmdbId}/watch/providers?api_key=${TMDB_KEY}`;
-    const wpRes = await fetch(endpoint);
-    const wpData = await wpRes.json();
-    const kr = wpData.results?.KR || {};
-    const allProviders = [
-      ...(kr.flatrate || []),
-      ...(kr.free || []),
-      ...(kr.ads || []),
-    ];
-    const seen = new Set();
-    return allProviders.filter(p => {
-      if (seen.has(p.provider_id)) return false;
-      seen.add(p.provider_id);
-      return true;
-    }).map(p => ({
-      id: p.provider_id,
-      name: p.provider_name,
-      logo: `https://image.tmdb.org/t/p/original${p.logo_path}`,
-    }));
-  } catch(e) { return []; }
-}
-
-async function fetchTMDB(title, year) {
-  const cacheKey = `${title}__${year}`;
-  // TMDB_ID_MAP에 있는 항목은 null 캐시도 무시하고 재시도 (수동 매핑 우선)
-  const isManualMapped = !!TMDB_ID_MAP[cacheKey];
-  if (!isManualMapped && tmdbCache[cacheKey] !== undefined) return tmdbCache[cacheKey];
-  if (isManualMapped && tmdbCache[cacheKey]) return tmdbCache[cacheKey];
-  try {
-    // 0차: 수동 매핑 테이블 우선 확인 (제목__연도 키)
-    const mapKey = `${title}__${year}`;
-    if (TMDB_ID_MAP[mapKey]) {
-      const { id, type } = TMDB_ID_MAP[mapKey];
-      const res = await fetch(`https://api.themoviedb.org/3/${type}/${id}?api_key=${TMDB_KEY}&language=ko-KR`);
-      const m = await res.json();
-      const ottList = await getOttList(id, type);
-      tmdbCache[cacheKey] = {
-        poster: m.poster_path ? `https://image.tmdb.org/t/p/w342${m.poster_path}` : null,
-        rating: m.vote_average ? Math.round(m.vote_average * 10) / 10 : null,
-        voteCount: m.vote_count,
-        overview: m.overview,
-        genres: (m.genres || []).map(g => g.name).filter(Boolean),
-        tmdbId: id,
-        mediaType: type,
-        releaseDate: m.release_date || m.first_air_date,
-        ottList,
-      };
-      return tmdbCache[cacheKey];
-    }
-
-    // 검색 시도 순서: movie(연도), movie(무연도), movie(특수문자제거), tv(연도), tv(무연도), tv(특수문자제거)
-    // 쉼표(,)도 포함 → '전,란' → '전 란' 형태로 변환
-    const simplTitle = title.replace(/[:\-–·,]/g, ' ').replace(/\s+/g,' ').trim();
-
-    let results = [];
-    let foundType = 'movie';
-
-    // 1~3차: movie 검색
-    results = await searchTMDB(title, year, 'movie');
-    if (results.length === 0 && year) results = await searchTMDB(title, null, 'movie');
-    if (results.length === 0 && simplTitle !== title) results = await searchTMDB(simplTitle, null, 'movie');
-
-    // 4~6차: movie에서 못 찾으면 tv로 폴백
-    if (results.length === 0) {
-      foundType = 'tv';
-      results = await searchTMDB(title, year, 'tv');
-      if (results.length === 0 && year) results = await searchTMDB(title, null, 'tv');
-      if (results.length === 0 && simplTitle !== title) results = await searchTMDB(simplTitle, null, 'tv');
-    }
-
-    // 7차: multi 검색 (번역 제목 등 한국어로 못 찾는 경우 폭넓게 재시도)
-    if (results.length === 0) {
-      const multiResults = await searchTMDBMulti(title, year);
-      if (multiResults.length > 0) {
-        foundType = multiResults[0].media_type || 'movie';
-        results = multiResults;
-      }
-    }
-
-    if (results.length > 0) {
-      const m = results[0];
-      const detectedType = m.media_type || foundType;
-      const ottList = await getOttList(m.id, detectedType);
-
-      // TV 시리즈는 title/release_date 필드명이 다름
-      const dateField = detectedType === 'tv' ? m.first_air_date : m.release_date;
-
-      tmdbCache[cacheKey] = {
-        poster: m.poster_path ? `https://image.tmdb.org/t/p/w342${m.poster_path}` : null,
-        rating: m.vote_average ? Math.round(m.vote_average * 10) / 10 : null,
-        voteCount: m.vote_count,
-        overview: m.overview,
-        genres: (m.genre_ids || []).map(id => genreMap[id]).filter(Boolean),
-        tmdbId: m.id,
-        mediaType: detectedType,
-        releaseDate: dateField,
-        ottList: ottList,
-      };
-    } else {
-      tmdbCache[cacheKey] = null;
-    }
+    const res = await fetch('tmdb-cache.json');
+    if (!res.ok) throw new Error('tmdb-cache.json not found');
+    const data = await res.json();
+    Object.assign(tmdbCache, data);
+    console.log(`[TMDB] 캐시 로드 완료: ${Object.keys(tmdbCache).length}개`);
   } catch(e) {
-    tmdbCache[cacheKey] = null;
+    console.warn('[TMDB] 캐시 로드 실패, 빈 캐시로 진행:', e.message);
   }
-  return tmdbCache[cacheKey];
+}
+
+function fetchTMDB(title, year) {
+  const cacheKey = `${title}__${year}`;
+  return tmdbCache[cacheKey] || null;
 }
 
 // 플랫폼 정보는 TMDB Watch Providers API로 제공
@@ -7313,13 +7183,6 @@ function renderGrid() {
     });
   });
 
-  // 포스터 lazy-load (로딩 중 중복 호출 방지)
-  filtered.forEach(m => {
-    const key = getMovieKey(m);
-    if (!state.movieCache[key] && !state.loadingSet.has(key)) {
-      loadMovieInfo(m);
-    }
-  });
 }
 
 function renderCard(m) {
@@ -7413,47 +7276,15 @@ function renderCard(m) {
 </div>`;
 }
 
-async function loadMovieInfo(m) {
+function loadMovieInfo(m) {
   const key = getMovieKey(m);
-  // 이미 로딩 중이면 중복 실행 차단
-  if (state.loadingSet.has(key)) return;
-  state.loadingSet.add(key);
-
-  try {
-    const { cleanTitle, releaseYear } = parseTitle(m.title);
-    // tmdbSkip: true 필드가 있으면 TMDB 검색 건너뜀
-    if (m.tmdbSkip) {
-      state.movieCache[key] = {};
-      return;
-    }
-    const info = await fetchTMDB(cleanTitle, releaseYear);
-    state.movieCache[key] = info || {};
-
-    // 카드 업데이트: data-key 속성으로 정확히 해당 카드만 찾아 교체
-    const grid = document.getElementById('movieGrid');
-    const card = grid?.querySelector(`.movie-card[data-key="${key.replace(/"/g,'&quot;')}"]`);
-    // 반드시 현재 그리드 안에 붙어있는 카드만 교체 (renderGrid 재호출로 이미 사라진 경우 무시)
-    if (card && grid && grid.contains(card)) {
-      const tmp = document.createElement('div');
-      tmp.innerHTML = renderCard(m);
-      const newCard = tmp.firstElementChild;
-      card.replaceWith(newCard);
-      requestAnimationFrame(() => {
-        const titleEl = newCard.querySelector('.card-title');
-        if (titleEl) {
-          if (titleEl.scrollWidth > titleEl.clientWidth) {
-            titleEl.classList.add('is-truncated');
-            const overflow = titleEl.scrollWidth - titleEl.clientWidth;
-            titleEl.style.setProperty('--marquee-dist', `-${overflow}px`);
-          } else {
-            titleEl.classList.remove('is-truncated');
-          }
-        }
-      });
-    }
-  } finally {
-    state.loadingSet.delete(key);
+  const { cleanTitle, releaseYear } = parseTitle(m.title);
+  if (m.tmdbSkip) {
+    state.movieCache[key] = {};
+    return;
   }
+  const info = fetchTMDB(cleanTitle, releaseYear);
+  state.movieCache[key] = info || {};
 }
 
 // ============================================================
@@ -8196,7 +8027,12 @@ function saveEditsToStorage() {
 // 초기화
 // ============================================================
 document.getElementById('bookmarkCount').textContent = state.bookmarks.size;
-renderGrid();
+
+// TMDB 캐시 로드 후 movieCache 채우고 렌더링
+loadTMDBCache().then(() => {
+  RAW_DATA.forEach(m => loadMovieInfo(m));
+  renderGrid();
+});
 
 // ============================================================
 // Firebase 연동
