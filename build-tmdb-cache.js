@@ -158,8 +158,12 @@ async function main() {
     await sleep(250); // TMDB API rate limit 방지
   }
 
+  fs.mkdirSync(path.dirname(OUT_PATH), { recursive: true });
   fs.writeFileSync(OUT_PATH, JSON.stringify(existing, null, 2), 'utf8');
   console.log(`\n\n✅ 완료: ${Object.keys(existing).length}개 항목 → ${OUT_PATH}`);
 }
 
-main().catch(console.error);
+main().catch(e => {
+  console.error('캐시 빌드 실패 (기존 캐시 유지):', e.message);
+  process.exit(0); // 배포는 계속 진행
+});

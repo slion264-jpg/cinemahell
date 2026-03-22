@@ -20,12 +20,11 @@ jobs:
       - name: Install dependencies
         run: npm install node-fetch
 
-      - name: Build TMDB cache
+      - name: Build TMDB cache (skip on failure)
         env:
           TMDB_KEY: ${{ secrets.TMDB_KEY }}
           GITHUB_ACTIONS: "true"
-        run: node build-tmdb-cache.js
-        continue-on-error: true
+        run: node build-tmdb-cache.js || echo "TMDB cache build skipped (will use existing cache)"
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
