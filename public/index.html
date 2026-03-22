@@ -7171,9 +7171,15 @@ async function loadTMDBCache() {
   }
 }
 
-function fetchTMDB(title, year) {
+function fetchTMDB(title, year, fallbackYear) {
   const cacheKey = `${title}__${year}`;
-  return tmdbCache[cacheKey] || null;
+  if (tmdbCache[cacheKey] !== undefined) return tmdbCache[cacheKey];
+  // title에 연도가 없을 때 RAW_DATA의 m.year로 fallback
+  if (!year && fallbackYear) {
+    const fallbackKey = `${title}__${fallbackYear}`;
+    if (tmdbCache[fallbackKey] !== undefined) return tmdbCache[fallbackKey];
+  }
+  return null;
 }
 
 // 플랫폼 정보는 TMDB Watch Providers API로 제공
@@ -7318,7 +7324,7 @@ function loadMovieInfo(m) {
     state.movieCache[key] = {};
     return;
   }
-  const info = fetchTMDB(cleanTitle, releaseYear);
+  const info = fetchTMDB(cleanTitle, releaseYear, m.year);
   state.movieCache[key] = info || {};
 }
 
