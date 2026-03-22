@@ -8,7 +8,12 @@ const fs = require('fs');
 const path = require('path');
 
 const TMDB_KEY = process.env.TMDB_KEY || 'eeb851ae2777074ea0c4d84f1e21aa12';
-const OUT_PATH = path.join(__dirname, 'github', 'cinemahell', 'public', 'tmdb-cache.json');
+// GitHub Actions: __dirname = 저장소 루트 → public/tmdb-cache.json
+// 로컬: __dirname = cinemahell/ → github/cinemahell/public/tmdb-cache.json
+const isCI = !!process.env.GITHUB_ACTIONS;
+const OUT_PATH = isCI
+  ? path.join(__dirname, 'public', 'tmdb-cache.json')
+  : path.join(__dirname, 'github', 'cinemahell', 'public', 'tmdb-cache.json');
 
 const TMDB_ID_MAP = {
   '삼체__2024':       { id: 108545, type: 'tv' },
@@ -20,7 +25,10 @@ const TMDB_ID_MAP = {
 const genreMap = {28:'액션',12:'어드벤처',16:'애니메이션',35:'코미디',80:'범죄',99:'다큐멘터리',18:'드라마',10751:'가족',14:'판타지',36:'역사',27:'공포',10402:'음악',9648:'미스터리',10749:'로맨스',878:'SF',10770:'TV영화',53:'스릴러',10752:'전쟁',37:'서부'};
 
 // RAW_DATA를 index.html에서 추출 (eval 방식으로 안전하게 파싱)
-const html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
+const HTML_PATH = isCI
+  ? path.join(__dirname, 'public', 'index.html')
+  : path.join(__dirname, 'index.html');
+const html = fs.readFileSync(HTML_PATH, 'utf8');
 const match = html.match(/const RAW_DATA = (\[[\s\S]*?\n\];)/);
 if (!match) { console.error('RAW_DATA 파싱 실패'); process.exit(1); }
 let RAW_DATA;
