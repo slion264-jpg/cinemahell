@@ -996,7 +996,9 @@
 // title: "삼체 (2024)",
 // subtitle: "시즌 1",              // ← 부가정보
 // posterOverride: "https://image.tmdb.org/t/p/w500/feSiISwgEpVzR1v3zv2n2AU4ANJ.jpg",  // ← 수동 포스터
-// tmdbSkip: true,                 // ← TMDB 검색 제외 (포스터·평점 자동검색 안 함)
+// tmdbSkip: true,                 // ← TMDB 검색 제외 (포스터·평점 자동검색 안 함) - 연극/콘서트 등
+// searchSuffix: "연극",           // ← 카드 클릭 시 검색어 뒤에 붙는 키워드 (기본값: "영화", "" 이면 제목만)
+// searchUrl: "https://...",       // ← 카드 클릭 시 이동할 URL 직접 지정 (searchSuffix 무시)
 // recommender: "이동진",
 // guest: "",
 // date: "2024-03-22",
@@ -1215,7 +1217,8 @@ const RAW_DATA = [
     "title": "마산시절",
     "subtitle": "연극",
     "posterOverride": "posters/25014500_p.gif",
-    "tmdbSkip": true
+    "tmdbSkip": true,
+    "searchSuffix": "연극"
   },
   {
     "date": "01.20",
@@ -1386,7 +1389,8 @@ const RAW_DATA = [
     "title": "로젤",
     "subtitle": "연극",
     "posterOverride": "posters/rosel_p.png",
-    "tmdbSkip": true
+    "tmdbSkip": true,
+    "searchSuffix": "연극"
   },
   {
     "date": "11.21",
@@ -2240,7 +2244,9 @@ const RAW_DATA = [
     "year": "2025",
     "recommender": "최광희",
     "title": "바디콘서트",
-    "posterOverride": "posters/bodyconcert_p.gif"
+    "posterOverride": "posters/bodyconcert_p.gif",
+    "tmdbSkip": true,
+    "searchSuffix": "콘서트"
   },
   {
     "date": "02.28",
@@ -7280,7 +7286,10 @@ function renderCard(m) {
   const guestDisplay = (m.recommender === '게스트' && guestName)
     ? `<span class="guest-name">${guestName}</span>` : '';
 
-  const googleUrl = `https://www.google.com/search?q=${encodeURIComponent(cleanTitle + (releaseYear ? ` (${releaseYear})` : '') + ' 영화')}`;
+  const searchSuffix = m.searchSuffix !== undefined ? m.searchSuffix : '영화';
+  const googleUrl = m.searchUrl
+    ? m.searchUrl
+    : `https://www.google.com/search?q=${encodeURIComponent(cleanTitle + (releaseYear ? ` (${releaseYear})` : '') + (searchSuffix ? ` ${searchSuffix}` : ''))}`;
 
   // 커뮤니티 pill (하단 좌측) — 😈 악마 아이콘 + 평균 + 시청자수
   const cs = (window._communityStats || {})[key];
