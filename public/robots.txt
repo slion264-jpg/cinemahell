@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://cinemahell-a3f39.web.app/sitemap.xml
+Sitemap: https://mbshow.kr/sitemap.xml
