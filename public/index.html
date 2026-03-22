@@ -7295,11 +7295,11 @@ function renderCard(m) {
     ${posterSrc ? `<img class="poster-img" src="${posterSrc}" alt="${cleanTitle}" loading="lazy" onerror="this.style.display='none'">` : `<div class="poster-placeholder"><div class="ph-icon">🎬</div><div class="ph-title">${cleanTitle}</div></div>`}
     ${commPillHtml}
     <div class="card-overlay">
-      <div class="watched-btn ${myRating ? 'rated' : ''}" onclick="event.stopPropagation();toggleStarPanel(event,'${key.replace(/'/g,"\\'")}',this)" title="내가 본 영화">
+      <div class="watched-btn ${myRating ? 'rated' : ''}" onclick="event.stopPropagation();toggleStarPanel(event,this.closest('.movie-card').dataset.key,this)" title="내가 본 영화">
         <span style="font-size:11px;font-weight:700;letter-spacing:-0.5px">${myRating ? `☆ ${myRating}` : '☆'}</span>
         <div class="star-panel" id="sp_${key.replace(/[^a-zA-Z0-9]/g,'_')}"></div>
       </div>
-      <div class="bookmark-btn ${isBookmarked ? 'active' : ''}" onclick="event.stopPropagation();toggleBookmark('${key.replace(/'/g,"\\'")}')">
+      <div class="bookmark-btn ${isBookmarked ? 'active' : ''}" onclick="event.stopPropagation();toggleBookmark(this.closest('.movie-card').dataset.key)"
         ${ribbonSvg}
       </div>
     </div>
@@ -7358,17 +7358,16 @@ function buildStarPanel(key, currentRating) {
     </svg>`;
 
     const svgHtml = fillType === 'full' ? svgFull : fillType === 'half' ? svgHalf : svgEmpty;
-    const ek = key.replace(/'/g, "\\'");
     html += `<div class="star-wrap" data-star="${i}" data-key="${key.replace(/"/g,'&quot;')}">
       ${svgHtml}
-      <div class="star-half-l"
-        onmouseenter="previewStars('${ek}',${halfVal})"
-        onmouseleave="resetStarPreview('${ek}',${currentRating||0})"
-        onclick="event.stopPropagation();setMyRating('${ek}',${halfVal})"></div>
-      <div class="star-half-r"
-        onmouseenter="previewStars('${ek}',${fullVal})"
-        onmouseleave="resetStarPreview('${ek}',${currentRating||0})"
-        onclick="event.stopPropagation();setMyRating('${ek}',${fullVal})"></div>
+      <div class="star-half-l" data-val="${halfVal}" data-cur="${currentRating||0}"
+        onmouseenter="previewStars(this.closest('.star-wrap').dataset.key,${halfVal})"
+        onmouseleave="resetStarPreview(this.closest('.star-wrap').dataset.key,${currentRating||0})"
+        onclick="event.stopPropagation();setMyRating(this.closest('.star-wrap').dataset.key,${halfVal})"></div>
+      <div class="star-half-r" data-val="${fullVal}" data-cur="${currentRating||0}"
+        onmouseenter="previewStars(this.closest('.star-wrap').dataset.key,${fullVal})"
+        onmouseleave="resetStarPreview(this.closest('.star-wrap').dataset.key,${currentRating||0})"
+        onclick="event.stopPropagation();setMyRating(this.closest('.star-wrap').dataset.key,${fullVal})"></div>
     </div>`;
   }
   return html;
@@ -7951,7 +7950,7 @@ function openModal(key) {
       <div style="font-size:11px;color:var(--text3);margin-top:6px">※ 키노라이츠에서 국내 OTT 시청 가능 여부를 한 번에 확인할 수 있습니다</div>
     </div>
     <div style="display:flex;gap:8px;margin-top:16px">
-      <button onclick="toggleBookmark('${key.replace(/'/g,"\\'")}');updateModalBookmark('${key.replace(/'/g,"\\'")}',this)"
+      <button data-key="${key.replace(/"/g,'&quot;')}" onclick="toggleBookmark(this.dataset.key);updateModalBookmark(this.dataset.key,this)"
         style="flex:1;padding:10px;border-radius:8px;border:none;cursor:pointer;font-weight:700;font-size:14px;
         background:${isBookmarked?'var(--gold)':'var(--surface2)'};color:${isBookmarked?'#000':'var(--text)'};transition:all 0.2s"
         id="modalBookmarkBtn">
