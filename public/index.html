@@ -662,6 +662,7 @@
     window.fbLogin = function() {
       console.log('[FB] fbLogin called');
       const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
       _auth.signInWithPopup(provider)
         .then(r => console.log('[FB] login ok:', r.user.email))
         .catch(e => console.error('[FB] login error:', e.code, e.message));
