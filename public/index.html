@@ -7334,7 +7334,7 @@ function renderCard(m) {
         <span style="font-size:11px;font-weight:700;letter-spacing:-0.5px">${myRating ? `☆ ${myRating}` : '☆'}</span>
         <div class="star-panel" id="sp_${key.replace(/[^a-zA-Z0-9]/g,'_')}"></div>
       </div>
-      <div class="bookmark-btn ${isBookmarked ? 'active' : ''}" onclick="event.stopPropagation();toggleBookmark(this.closest('.movie-card').dataset.key)"
+      <div class="bookmark-btn ${isBookmarked ? 'active' : ''}" onclick="event.stopPropagation();toggleBookmark(this.closest('.movie-card').dataset.key)">
         ${ribbonSvg}
       </div>
     </div>
