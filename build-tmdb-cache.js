@@ -24,6 +24,7 @@ const TMDB_ID_MAP = {
   '모래그릇__1974':       { id: 29268,   type: 'movie' },
   '워스__2020':           { id: 649394,  type: 'movie' },
   '직장상사 길들이기__2026': { id: 1198994, type: 'movie' },
+  '식스센스__1999':          { id: 745,     type: 'movie' }, // The Sixth Sense (브루스 윌리스, M. 나이트 샤말란)
 };
 
 const genreMap = {28:'액션',12:'어드벤처',16:'애니메이션',35:'코미디',80:'범죄',99:'다큐멘터리',18:'드라마',10751:'가족',14:'판타지',36:'역사',27:'공포',10402:'음악',9648:'미스터리',10749:'로맨스',878:'SF',10770:'TV영화',53:'스릴러',10752:'전쟁',37:'서부'};
@@ -140,7 +141,7 @@ async function main() {
     const key = getMovieKey(m);
     if (keys.has(key)) continue;
     keys.add(key);
-    if (existing[key]) continue; // 이미 캐시된 항목 건너뜀
+    if (existing[key] && !TMDB_ID_MAP[key]) continue; // 수동 매핑 항목은 항상 재조회
     toFetch.push(m);
   }
 
