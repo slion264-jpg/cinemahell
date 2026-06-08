@@ -6,15 +6,16 @@
 <title>매불쇼 시네마지옥 - 주말 영화 추천 큐레이션</title>
 
 <!-- SEO 기본 메타태그 -->
-<meta name="description" content="매불쇼 시네마지옥 코너의 주말 영화 추천 목록. 이동진, 전찬일, 라이너, 거의없다의 추천작을 한눈에 확인하고 OTT 시청처까지 찾아보세요.">
-<meta name="keywords" content="매불쇼, 시네마지옥, 영화추천, 이동진, 전찬일, 라이너, 거의없다, 주말영화, OTT, 넷플릭스, 왓챠">
+<meta name="description" content="매불쇼 시네마지옥 코너 주말 영화 추천 아카이브. 라이너, 거의없다, 전찬일, 최욱, 정영진, 최광희의 추천작을 한눈에 확인하고 넷플릭스·왓챠·티빙 시청처까지 찾아보세요.">
+<meta name="keywords" content="매불쇼, 시네마지옥, 영화추천, 이동진, 전찬일, 라이너, 거의없다, 최욱, 정영진, 최광희, 주말영화, 주말영화추천, 시네마지옥추천, OTT, 넷플릭스, 왓챠, 티빙, 영화큐레이션">
 <meta name="author" content="매불쇼 시네마지옥">
+<meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="https://mbshow.kr/">
 
 <!-- Open Graph (카카오톡·슬랙·페이스북 공유 미리보기) -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="매불쇼 시네마지옥 - 주말 영화 추천 큐레이션">
-<meta property="og:description" content="매불쇼 시네마지옥 코너의 주말 영화 추천 목록. 이동진, 전찬일, 라이너, 거의없다의 추천작과 OTT 시청처를 한눈에 확인하세요.">
+<meta property="og:description" content="매불쇼 시네마지옥 코너 주말 영화 추천 아카이브. 라이너, 거의없다, 전찬일, 최욱, 정영진의 추천작과 OTT 시청처를 한눈에 확인하세요.">
 <meta property="og:url" content="https://mbshow.kr/">
 <meta property="og:site_name" content="매불쇼 시네마지옥">
 <meta property="og:locale" content="ko_KR">
@@ -591,6 +592,122 @@
 
   .movie-card { cursor: default; }
 
+  /* ── BOARD PANEL ── */
+  .board-toggle {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 20px; cursor: pointer;
+    background: var(--surface2); border: 1px solid var(--border);
+    font-size: 13px; font-weight: 600; color: var(--text2);
+    transition: all 0.2s; white-space: nowrap; flex-shrink: 0;
+  }
+  .board-toggle:hover { border-color: var(--accent); color: var(--text); }
+  .board-toggle.active { background: rgba(229,9,20,0.12); border-color: var(--accent); color: var(--accent); }
+  .board-new-badge {
+    background: var(--accent); color: #fff;
+    border-radius: 10px; padding: 1px 7px; font-size: 11px; font-weight: 700; display: none;
+  }
+
+  .board-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55); z-index: 290; backdrop-filter: blur(2px);
+  }
+  .board-overlay.open { display: block; }
+
+  .board-panel {
+    position: fixed; right: 0; top: 0; bottom: 0;
+    width: 400px; max-width: 100vw;
+    background: var(--surface); border-left: 1px solid var(--border);
+    z-index: 300; transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.22,1,0.36,1);
+    display: flex; flex-direction: column;
+    box-shadow: -8px 0 32px rgba(0,0,0,0.5);
+  }
+  .board-panel.open { transform: translateX(0); }
+
+  .board-header {
+    padding: 14px 18px;
+    border-bottom: 2px solid var(--accent);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .board-title { font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: -0.3px; }
+  .board-post-count { font-size: 12px; color: var(--text3); margin-left: 8px; font-weight: 400; }
+  .board-close {
+    background: none; border: none; cursor: pointer;
+    color: var(--text2); font-size: 22px; line-height: 1; padding: 2px 4px;
+    border-radius: 6px; transition: background 0.15s;
+  }
+  .board-close:hover { background: var(--surface2); color: var(--text); }
+
+  .board-posts {
+    flex: 1; overflow-y: auto; padding: 14px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .board-posts::-webkit-scrollbar { width: 4px; }
+  .board-posts::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .board-post {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+    transition: border-color 0.15s;
+  }
+  .board-post:hover { border-color: #555; }
+  .post-header {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  }
+  .post-avatar {
+    width: 24px; height: 24px; border-radius: 50%;
+    border: 1px solid var(--border); flex-shrink: 0; object-fit: cover;
+  }
+  .post-author { font-size: 12px; font-weight: 700; color: var(--text2); }
+  .post-date { font-size: 11px; color: var(--text3); margin-left: auto; white-space: nowrap; }
+  .post-content {
+    font-size: 13px; color: var(--text); line-height: 1.6;
+    word-break: break-word; white-space: pre-wrap;
+  }
+
+  .board-empty {
+    text-align: center; color: var(--text3);
+    padding: 50px 20px; font-size: 13px; line-height: 2;
+  }
+  .board-empty-icon { font-size: 36px; display: block; margin-bottom: 10px; }
+
+  .board-compose {
+    padding: 14px; border-top: 1px solid var(--border); flex-shrink: 0;
+    background: var(--surface);
+  }
+  .compose-login-hint {
+    font-size: 13px; color: var(--text3); text-align: center;
+    padding: 10px; border: 1px dashed var(--border);
+    border-radius: 8px; cursor: pointer; transition: border-color 0.2s;
+  }
+  .compose-login-hint:hover { border-color: #4285F4; color: var(--text2); }
+  .compose-textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; color: var(--text);
+    font-size: 13px; font-family: 'Noto Sans KR', -apple-system, sans-serif;
+    resize: none; outline: none; line-height: 1.6; min-height: 80px;
+    transition: border-color 0.2s;
+  }
+  .compose-textarea:focus { border-color: var(--accent); }
+  .compose-textarea::placeholder { color: var(--text3); }
+  .compose-footer {
+    display: flex; align-items: center; justify-content: space-between; margin-top: 8px;
+  }
+  .compose-char { font-size: 11px; color: var(--text3); }
+  .compose-submit {
+    background: var(--accent); color: #fff;
+    border: none; border-radius: 8px; padding: 8px 18px;
+    font-size: 13px; font-weight: 700; cursor: pointer; transition: background 0.2s;
+  }
+  .compose-submit:hover:not(:disabled) { background: var(--accent2); }
+  .compose-submit:disabled { background: var(--border); color: var(--text3); cursor: not-allowed; }
+
+  @media (max-width: 600px) {
+    .board-panel { width: 100vw; }
+    .board-toggle .board-label { display: none; }
+  }
+
 </style>
 <!-- Firebase SDK -->
 <!-- Firebase 동적 로드 (CDN 실패 시 대체 CDN 자동 사용) -->
@@ -716,6 +833,7 @@
       }
       await window._loadCommunityStats?.();
       if (typeof renderGrid === 'function') renderGrid();
+      if (typeof updateBoardCompose === 'function') updateBoardCompose(user);
     });
 
     // ── 외부 클릭 시 유저 메뉴 닫기
@@ -767,6 +885,11 @@
     <div class="bookmark-toggle" id="bookmarkToggle" onclick="toggleBookmarkView()">
       <svg width="14" height="18" viewBox="0 0 18 24" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><path d="M2 2 H16 V22 L9 16 L2 22 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" id="headerRibbonPath"/></svg>
       내 책갈피 <span class="bookmark-count" id="bookmarkCount">0</span>
+    </div>
+    <div class="board-toggle" id="boardToggle" onclick="toggleBoard()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="board-label">게시판</span>
+      <span class="board-new-badge" id="boardNewBadge">New</span>
     </div>
     <button id="loginBtn" class="login-btn" onclick="fbLogin()">
       <svg class="google-icon" viewBox="0 0 48 48">
@@ -8403,6 +8526,187 @@ window._updateMovieStat = async function(key, newVal) {
   } catch(e) { console.warn('[FB] updateMovieStat failed', e); }
 };
 
+
+// ============================================================
+// 게시판 (방문자 게시판)
+// ============================================================
+let _boardOpen = false;
+let _boardPosts = [];
+let _boardUnsub = null;
+let _boardLoaded = false;
+let _boardSeenCount = parseInt(localStorage.getItem('boardSeenCount') || '0', 10);
+
+function toggleBoard() {
+  _boardOpen = !_boardOpen;
+  document.getElementById('boardPanel').classList.toggle('open', _boardOpen);
+  document.getElementById('boardOverlay').classList.toggle('open', _boardOpen);
+  document.getElementById('boardToggle').classList.toggle('active', _boardOpen);
+
+  if (_boardOpen) {
+    if (!_boardLoaded && window._db) _startBoardListener();
+    // 열었을 때 New 배지 숨김
+    _boardSeenCount = _boardPosts.length;
+    localStorage.setItem('boardSeenCount', _boardSeenCount);
+    document.getElementById('boardNewBadge').style.display = 'none';
+  }
+}
+
+function _startBoardListener() {
+  if (_boardUnsub || !window._db) return;
+  _boardLoaded = true;
+  try {
+    _boardUnsub = window._db.collection('posts')
+      .orderBy('createdAt', 'desc').limit(100)
+      .onSnapshot(snap => {
+        _boardPosts = [];
+        snap.forEach(d => _boardPosts.push({ id: d.id, ...d.data() }));
+        _renderBoardPosts();
+        _updateBoardBadge();
+      }, err => {
+        console.warn('[Board] onSnapshot err, fallback:', err.message);
+        _boardFallbackLoad();
+      });
+  } catch(e) { _boardFallbackLoad(); }
+}
+
+async function _boardFallbackLoad() {
+  if (!window._db) return;
+  try {
+    const snap = await window._db.collection('posts').get();
+    _boardPosts = [];
+    snap.forEach(d => _boardPosts.push({ id: d.id, ...d.data() }));
+    _boardPosts.sort((a,b) => (b.createdAt||0)-(a.createdAt||0));
+    _renderBoardPosts();
+    _updateBoardBadge();
+  } catch(e) { console.warn('[Board] fallback failed', e); }
+}
+
+function _renderBoardPosts() {
+  const container = document.getElementById('boardPosts');
+  if (!container) return;
+  container.innerHTML = '';
+
+  document.getElementById('boardPostCount').textContent = _boardPosts.length > 0 ? `(${_boardPosts.length})` : '';
+
+  if (_boardPosts.length === 0) {
+    container.innerHTML = '<div class="board-empty"><span class="board-empty-icon">💬</span>아직 작성된 글이 없습니다.<br>첫 번째 글을 남겨보세요!</div>';
+    return;
+  }
+
+  _boardPosts.forEach(post => {
+    const el = document.createElement('div');
+    el.className = 'board-post';
+    const ts = post.createdAt ? new Date(post.createdAt) : new Date();
+    const dateStr = `${ts.getMonth()+1}.${String(ts.getDate()).padStart(2,'0')} ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}`;
+    const safeContent = (post.content||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const safeAuthor = (post.authorName||'익명').replace(/</g,'&lt;');
+    el.innerHTML = `
+      <div class="post-header">
+        ${post.authorPhoto ? `<img src="${post.authorPhoto.replace(/"/g,'')}" class="post-avatar" onerror="this.style.display='none'" alt="">` : '<div style="width:24px;height:24px;border-radius:50%;background:var(--border);flex-shrink:0"></div>'}
+        <span class="post-author">${safeAuthor}</span>
+        <span class="post-date">${dateStr}</span>
+      </div>
+      <div class="post-content">${safeContent.replace(/\n/g,'<br>')}</div>`;
+    container.appendChild(el);
+  });
+}
+
+function _updateBoardBadge() {
+  const badge = document.getElementById('boardNewBadge');
+  if (!badge) return;
+  if (!_boardOpen && _boardPosts.length > _boardSeenCount) {
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function updateBoardCompose(user) {
+  const hint = document.getElementById('composeLoginHint');
+  const form = document.getElementById('composeForm');
+  if (!hint || !form) return;
+  if (user) { hint.style.display = 'none'; form.style.display = 'block'; }
+  else       { hint.style.display = 'block'; form.style.display = 'none'; }
+}
+
+function _updateComposeChar() {
+  const ta = document.getElementById('composeText');
+  const cc = document.getElementById('composeCharCount');
+  if (cc && ta) cc.textContent = ta.value.length;
+}
+
+async function submitPost() {
+  if (!window._fbUser || !window._db) return;
+  const ta  = document.getElementById('composeText');
+  const btn = document.getElementById('composeSubmit');
+  const content = ta.value.trim();
+  if (!content || content.length > 500) return;
+
+  btn.disabled = true; btn.textContent = '등록 중...';
+  try {
+    await window._db.collection('posts').add({
+      uid:        window._fbUser.uid,
+      authorName: window._fbUser.displayName || '익명',
+      authorPhoto:window._fbUser.photoURL || null,
+      content:    content,
+      createdAt:  Date.now()
+    });
+    ta.value = '';
+    _updateComposeChar();
+  } catch(e) {
+    console.warn('[Board] post failed', e);
+    alert('등록에 실패했습니다. 잠시 후 다시 시도해주세요.');
+  }
+  btn.disabled = false; btn.textContent = '등록';
+}
+
+// Firebase가 준비되면 게시판 리스너 시작 (패널 열지 않아도 배지 업데이트용)
+(function waitBoard() {
+  if (window._db) {
+    _startBoardListener();
+  } else {
+    setTimeout(waitBoard, 500);
+  }
+})();
+
 </script>
+
+<!-- 게시판 오버레이 -->
+<div class="board-overlay" id="boardOverlay" onclick="toggleBoard()"></div>
+
+<!-- 게시판 패널 -->
+<div class="board-panel" id="boardPanel">
+  <div class="board-header">
+    <div style="display:flex;align-items:baseline;gap:4px">
+      <span class="board-title">💬 방문자 게시판</span>
+      <span class="board-post-count" id="boardPostCount"></span>
+    </div>
+    <button class="board-close" onclick="toggleBoard()" title="닫기">×</button>
+  </div>
+  <div class="board-posts" id="boardPosts">
+    <div class="board-empty"><span class="board-empty-icon">💬</span>불러오는 중...</div>
+  </div>
+  <div class="board-compose" id="boardCompose">
+    <div class="compose-login-hint" id="composeLoginHint" onclick="fbLogin()">
+      ✏️ 글을 쓰려면 로그인이 필요합니다 — <u>로그인</u>
+    </div>
+    <div id="composeForm" style="display:none">
+      <textarea id="composeText" class="compose-textarea"
+        placeholder="영화 감상, 추천 요청, 자유 의견을 남겨주세요 (최대 500자)"
+        maxlength="500" oninput="_updateComposeChar()"></textarea>
+      <div class="compose-footer">
+        <span class="compose-char"><span id="composeCharCount">0</span>/500</span>
+        <button class="compose-submit" id="composeSubmit" onclick="submitPost()">등록</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SEO용 정적 콘텐츠 (검색엔진 크롤러용) -->
+<div style="display:none" aria-hidden="true" id="seoContent">
+  <h1>매불쇼 시네마지옥 주말 영화 추천</h1>
+  <p>정영진 최욱의 매불쇼 시네마지옥 코너에서 라이너, 거의없다, 전찬일, 최광희가 매주 추천하는 주말 영화 큐레이션 아카이브입니다. 넷플릭스, 왓챠, 티빙, 웨이브 등 OTT 시청처 정보를 함께 제공합니다.</p>
+</div>
+
 </body>
 </html>
