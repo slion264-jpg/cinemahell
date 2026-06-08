@@ -8599,11 +8599,8 @@ function _renderBoardPosts() {
     const ts = post.createdAt ? new Date(post.createdAt) : new Date();
     const dateStr = `${ts.getMonth()+1}.${String(ts.getDate()).padStart(2,'0')} ${String(ts.getHours()).padStart(2,'0')}:${String(ts.getMinutes()).padStart(2,'0')}`;
     const safeContent = (post.content||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const safeAuthor = (post.authorName||'익명').replace(/</g,'&lt;');
     el.innerHTML = `
       <div class="post-header">
-        ${post.authorPhoto ? `<img src="${post.authorPhoto.replace(/"/g,'')}" class="post-avatar" onerror="this.style.display='none'" alt="">` : '<div style="width:24px;height:24px;border-radius:50%;background:var(--border);flex-shrink:0"></div>'}
-        <span class="post-author">${safeAuthor}</span>
         <span class="post-date">${dateStr}</span>
       </div>
       <div class="post-content">${safeContent.replace(/\n/g,'<br>')}</div>`;
@@ -8645,11 +8642,9 @@ async function submitPost() {
   btn.disabled = true; btn.textContent = '등록 중...';
   try {
     await window._db.collection('posts').add({
-      uid:        window._fbUser.uid,
-      authorName: window._fbUser.displayName || '익명',
-      authorPhoto:window._fbUser.photoURL || null,
-      content:    content,
-      createdAt:  Date.now()
+      uid:      window._fbUser.uid,
+      content:  content,
+      createdAt: Date.now()
     });
     ta.value = '';
     _updateComposeChar();
