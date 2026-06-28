@@ -19,11 +19,17 @@
 <meta property="og:url" content="https://mbshow.kr/">
 <meta property="og:site_name" content="매불쇼 시네마지옥">
 <meta property="og:locale" content="ko_KR">
+<meta property="og:image" content="https://mbshow.kr/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="매불쇼 시네마지옥 - 주말 영화 추천 큐레이션">
 
 <!-- Twitter Card -->
-<meta name="twitter:card" content="summary">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="매불쇼 시네마지옥 - 주말 영화 추천">
 <meta name="twitter:description" content="매불쇼 시네마지옥 코너의 주말 영화 추천 목록. OTT 시청처까지 한번에.">
+<meta name="twitter:image" content="https://mbshow.kr/og-image.png">
 
 <!-- 구조화 데이터 (Google 리치 스니펫) -->
 <script type="application/ld+json">
@@ -34,9 +40,25 @@
   "url": "https://mbshow.kr/",
   "description": "매불쇼 시네마지옥 코너의 주말 영화 추천 큐레이션 사이트",
   "inLanguage": "ko",
+  "image": "https://mbshow.kr/og-image.png",
   "publisher": {
     "@type": "Organization",
-    "name": "매불쇼 시네마지옥"
+    "name": "매불쇼 시네마지옥",
+    "url": "https://mbshow.kr/",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://mbshow.kr/og-image.png",
+      "width": 1200,
+      "height": 630
+    }
+  },
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": {
+      "@type": "EntryPoint",
+      "urlTemplate": "https://mbshow.kr/?q={search_term_string}"
+    },
+    "query-input": "required name=search_term_string"
   }
 }
 </script>
