@@ -1,0 +1,43 @@
+name: 시네마지옥 주간 업데이트
+
+on:
+  schedule:
+    - cron: '0 11 * * 5'   # 매주 금요일 20:00 KST (UTC 11:00)
+  workflow_dispatch:        # Actions 탭에서 수동 실행 버튼
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install youtubei.js node-fetch
+
+      - name: 시네마지옥 추천작 확인 및 반영
+        env:
+          TMDB_KEY: ${{ secrets.TMDB_KEY }}
+          KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+        run: node weekly-update.js
+
+      - name: 변경사항 커밋 및 푸시
+        run: |
+          git config user.name "cinemahell-bot"
+          git config user.email "actions@github.com"
+          if git diff --quiet; then
+            echo "변경사항 없음 - 커밋 생략"
+          else
+            git add public/index.html public/sitemap.xml
+            git commit -m "feat: 시네마지옥 주간 추천작 자동 업데이트"
+            git push
+          fi
