@@ -105,29 +105,60 @@ async function findYear(title) {
 // ── 유튜브 커뮤니티에서 최신 시네마지옥 게시물 가져오기 ───────
 // 주의: youtubei.js는 비공식 라이브러리라 유튜브 쪽 구조 변경 시 깨질 수 있습니다.
 // 실패 시 예외를 던지므로, Actions 로그에서 원인을 확인해 조정하세요.
+//
+// getChannel()은 핸들(@maebulshow)이 아니라 browseId(UC...)를 받으므로
+// resolveURL로 먼저 핸들 → browseId 변환이 필요합니다.
 async function getLatestCinemahellPost() {
-  const { Innertube } = await import('youtubei.js');
+  const { Innertube, YTNodes } = await import('youtubei.js');
   const yt = await Innertube.create({ generate_session_locally: true });
-  const channel = await yt.getChannel('@maebulshow');
+
+  const resolved = await yt.resolveURL('https://www.youtube.com/@maebulshow');
+  const browseId = resolved?.payload?.browseId;
+  if (!browseId) {
+    throw new Error('채널 ID 확인 실패 (resolveURL 응답에 browseId 없음): ' + JSON.stringify(resolved));
+  }
+  console.log('채널 browseId:', browseId);
+
+  const channel = await yt.getChannel(browseId);
   const community = await channel.getCommunity();
 
-  const items = community?.posts || community?.contents || [];
-  for (const item of items) {
-    const text = extractPostText(item);
+  const threads = community?.memo?.getType(YTNodes.BackstagePostThread) || [];
+  console.log(`커뮤니티 게시물 ${threads.length}건 확인`);
+
+  for (const thread of threads) {
+    const post = thread.post || thread;
+    const text = extractPostText(post);
     if (text && text.includes('시네마') && text.includes('지옥')) {
-      return text;
+      const published = post?.published?.toString?.() || '';
+      return { text, published };
     }
   }
   return null;
 }
 
-function extractPostText(item) {
+function extractPostText(post) {
   try {
-    const content = item.content ?? item.post?.content ?? item?.backstage_attachment?.content;
+    const content = post?.content;
     if (content?.toString) return content.toString();
     if (typeof content === 'string') return content;
   } catch (e) { /* ignore */ }
   return null;
+}
+
+// ── 게시물의 "N일 전" / "N주 전" / "N시간 전" 등을 실제 날짜로 환산 ─
+function resolveDate(publishedText) {
+  const now = new Date();
+  const d = new Date(now);
+  const dayMatch = publishedText.match(/(\d+)\s*일\s*전/);
+  const weekMatch = publishedText.match(/(\d+)\s*주\s*전/);
+  const monthMatch = publishedText.match(/(\d+)\s*개월\s*전/);
+  if (monthMatch) d.setMonth(d.getMonth() - parseInt(monthMatch[1], 10));
+  else if (weekMatch) d.setDate(d.getDate() - parseInt(weekMatch[1], 10) * 7);
+  else if (dayMatch) d.setDate(d.getDate() - parseInt(dayMatch[1], 10));
+  // "N시간 전", "N분 전"이면 오늘 날짜 그대로 사용
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return { date: `${mm}.${dd}`, year: String(d.getFullYear()) };
 }
 
 // ── 게시물 텍스트에서 "*이름 - 제목" 라인 파싱 ────────────────
@@ -174,14 +205,16 @@ async function main() {
   const rawData = readRawData(html);
 
   console.log('유튜브 최신 게시물 확인 중...');
-  const postText = await getLatestCinemahellPost();
-  if (!postText) {
+  const post = await getLatestCinemahellPost();
+  if (!post) {
     console.log('시네마지옥 게시물을 찾지 못했습니다. 종료.');
     return;
   }
+  const { text: postText, published } = post;
+  console.log('게시물 게시 시점:', published || '(알 수 없음 - 오늘 날짜로 대체)');
   console.log('게시물 원문:\n' + postText);
 
-  const { date, year } = todayDate();
+  const { date, year } = published ? resolveDate(published) : todayDate();
 
   // 이미 오늘 날짜로 등록된 게 있으면 중복으로 보고 종료
   if (rawData.some(r => r.date === date)) {
