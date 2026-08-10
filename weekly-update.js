@@ -3,74 +3,20 @@
  * 매주 금요일 GitHub Actions에서 실행 — 매불쇼 유튜브 커뮤니티의 최신 '시네마 지옥' 게시물을 확인해
  * public/index.html의 RAW_DATA에 새 추천작을 자동으로 추가하고 커밋합니다(푸시는 워크플로우가 담당).
  *
- * TMDB에서 개봉연도를 찾지 못하는 작품이 하나라도 있으면 커밋하지 않고
- * 카카오톡(나에게 보내기)으로 알림만 보내고 종료합니다 — 잘못된 데이터가 사이트에 반영되는 것을 막기 위함입니다.
+ * TMDB에서 개봉연도를 찾지 못하는 작품이 하나라도 있으면 아무것도 반영하지 않고 로그만 남긴 채 종료합니다
+ * — 잘못된 데이터가 사이트에 반영되는 것을 막기 위함입니다. (Actions 로그에서 확인 후 index.html에 직접 추가)
  */
 
 const fs = require('fs');
 const path = require('path');
-const https = require('https');
 
 const TMDB_KEY = process.env.TMDB_KEY || 'eeb851ae2777074ea0c4d84f1e21aa12';
-const KAKAO_REST_KEY = process.env.KAKAO_REST_API_KEY;
-const KAKAO_REFRESH = process.env.KAKAO_REFRESH_TOKEN;
 
 const REPO_ROOT = __dirname;
 const INDEX_PATH = path.join(REPO_ROOT, 'public', 'index.html');
 const SITEMAP_PATH = path.join(REPO_ROOT, 'public', 'sitemap.xml');
 
 const FIXED_RECOMMENDERS = ['전찬일', '라이너', '거의없다', '최광희'];
-
-// ── HTTP 요청 헬퍼 (notify.js와 동일) ─────────────────────────
-function httpRequest(method, hostname, reqPath, headers, body) {
-  return new Promise((resolve, reject) => {
-    const data = body || '';
-    const req = https.request(
-      { hostname, path: reqPath, method, headers: { 'Content-Length': Buffer.byteLength(data), ...headers } },
-      (res) => {
-        let d = '';
-        res.on('data', c => d += c);
-        res.on('end', () => {
-          try { resolve({ status: res.statusCode, body: JSON.parse(d) }); }
-          catch { resolve({ status: res.statusCode, body: d }); }
-        });
-      }
-    );
-    req.on('error', reject);
-    if (data) req.write(data);
-    req.end();
-  });
-}
-
-// ── 카카오톡 나에게 보내기 (notify.js와 동일 패턴) ────────────
-async function getKakaoAccessToken() {
-  const body = `grant_type=refresh_token&client_id=${KAKAO_REST_KEY}&refresh_token=${KAKAO_REFRESH}`;
-  const res = await httpRequest('POST', 'kauth.kakao.com', '/oauth/token', {
-    'Content-Type': 'application/x-www-form-urlencoded',
-  }, body);
-  if (res.body.error) throw new Error('카카오 토큰 갱신 실패: ' + JSON.stringify(res.body));
-  return res.body.access_token;
-}
-
-async function sendKakaoMessage(text) {
-  if (!KAKAO_REST_KEY || !KAKAO_REFRESH) {
-    console.log('[카카오 시크릿 미설정 - 알림 생략]\n' + text);
-    return;
-  }
-  const accessToken = await getKakaoAccessToken();
-  const templateObj = JSON.stringify({
-    object_type: 'text',
-    text: text.substring(0, 200),
-    link: { web_url: 'https://mbshow.kr', mobile_web_url: 'https://mbshow.kr' }
-  });
-  const body = 'template_object=' + encodeURIComponent(templateObj);
-  const res = await httpRequest('POST', 'kapi.kakao.com', '/v2/api/talk/memo/default/send', {
-    'Authorization': 'Bearer ' + accessToken,
-    'Content-Type': 'application/x-www-form-urlencoded',
-  }, body);
-  if (res.body.result_code !== 0) throw new Error('카카오 전송 실패: ' + JSON.stringify(res.body));
-  console.log('카카오톡 알림 전송 완료');
-}
 
 // ── TMDB 조회 (build-tmdb-cache.js와 동일 검색 전략) ──────────
 async function apiFetch(url) {
@@ -244,13 +190,9 @@ async function main() {
   }
 
   if (unresolved.length > 0) {
-    const msg = `[mbshow.kr 시네마지옥 자동 업데이트 보류]\n\n` +
-      `TMDB에서 개봉연도를 찾지 못한 작품이 있어 이번 주는 자동 반영하지 않았습니다:\n` +
-      unresolved.map(u => `- ${u.recommender === '게스트' ? u.guestName : u.recommender}: ${u.rawTitle}`).join('\n') +
-      `\n\n확인 후 index.html에 직접 추가해 주세요. (나머지 ${resolvedEntries.length}개는 문제없이 찾았지만, 이번 주는 전체를 보류합니다.)`;
-    console.log(msg);
-    // 카카오 알림이 실패해도 "보류" 판단 자체는 정상 동작이므로 워크플로우를 실패 처리하지 않음
-    await sendKakaoMessage(msg).catch(e => console.error('카카오 알림 실패(무시하고 정상 종료):', e.message));
+    console.log(`[시네마지옥 자동 업데이트 보류] TMDB에서 개봉연도를 찾지 못한 작품이 있어 이번 주는 자동 반영하지 않았습니다:`);
+    unresolved.forEach(u => console.log(`  - ${u.recommender === '게스트' ? u.guestName : u.recommender}: ${u.rawTitle}`));
+    console.log(`확인 후 index.html에 직접 추가해 주세요. (나머지 ${resolvedEntries.length}개는 문제없이 찾았지만, 이번 주는 전체를 보류합니다.)`);
     return; // 커밋하지 않음
   }
 
@@ -269,10 +211,6 @@ async function main() {
 
   console.log(`\u2705 ${resolvedEntries.length}개 항목 추가 완료:`);
   resolvedEntries.forEach(e => console.log(`  - [${e.recommender}] ${e.title}`));
-
-  const doneMsg = `[mbshow.kr] 시네마지옥 ${date} 추천작 ${resolvedEntries.length}편 자동 반영 완료\n` +
-    resolvedEntries.map(e => `- [${e.recommender}] ${e.title}`).join('\n');
-  await sendKakaoMessage(doneMsg).catch(e => console.error('완료 알림 실패(무시):', e.message));
 }
 
 main().catch(e => {

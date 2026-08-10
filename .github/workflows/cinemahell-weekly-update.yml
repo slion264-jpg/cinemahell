@@ -26,8 +26,6 @@ jobs:
       - name: 시네마지옥 추천작 확인 및 반영
         env:
           TMDB_KEY: ${{ secrets.TMDB_KEY }}
-          KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
-          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
         run: node weekly-update.js
 
       - name: 변경사항 커밋 및 푸시
