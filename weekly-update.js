@@ -249,7 +249,8 @@ async function main() {
       unresolved.map(u => `- ${u.recommender === '게스트' ? u.guestName : u.recommender}: ${u.rawTitle}`).join('\n') +
       `\n\n확인 후 index.html에 직접 추가해 주세요. (나머지 ${resolvedEntries.length}개는 문제없이 찾았지만, 이번 주는 전체를 보류합니다.)`;
     console.log(msg);
-    await sendKakaoMessage(msg);
+    // 카카오 알림이 실패해도 "보류" 판단 자체는 정상 동작이므로 워크플로우를 실패 처리하지 않음
+    await sendKakaoMessage(msg).catch(e => console.error('카카오 알림 실패(무시하고 정상 종료):', e.message));
     return; // 커밋하지 않음
   }
 
