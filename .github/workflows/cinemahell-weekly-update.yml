@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   update:
@@ -29,13 +30,24 @@ jobs:
         run: node weekly-update.js
 
       - name: 변경사항 커밋 및 푸시
+        id: commit
         run: |
           git config user.name "cinemahell-bot"
           git config user.email "actions@github.com"
           if git diff --quiet; then
             echo "변경사항 없음 - 커밋 생략"
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
           else
             git add public/index.html public/sitemap.xml
             git commit -m "feat: 시네마지옥 주간 추천작 자동 업데이트"
             git push
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
           fi
+
+      # GITHUB_TOKEN으로 푸시한 커밋은 다른 워크플로우의 on:push 트리거를 깨우지 않으므로
+      # Firebase Deploy 워크플로우를 명시적으로 실행해준다.
+      - name: Firebase Deploy 트리거
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run firebase-deploy.yml --repo ${{ github.repository }} --ref main
