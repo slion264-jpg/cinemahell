@@ -151,18 +151,23 @@ function todayDate() {
   return dateParts(new Date());
 }
 
-// 예약 실행 구간은 금요일 22:00~토요일 00:00 KST입니다.
-// 토요일 00:00 실행도 직전 금요일 방송분을 대상으로 처리합니다.
-function scheduledBroadcastDate() {
+// KST 기준 가장 최근 금요일을 해당 회차의 방송일로 사용합니다.
+// YouTube 커뮤니티 글은 방송일보다 1~2일 먼저 올라올 수 있어 게시일을 방송일로 쓰지 않습니다.
+function targetBroadcastDate() {
   const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-  if (kst.getUTCDay() === 6 && kst.getUTCHours() <= 1) {
-    kst.setUTCDate(kst.getUTCDate() - 1);
-  }
+  const daysSinceFriday = (kst.getUTCDay() + 2) % 7;
+  kst.setUTCDate(kst.getUTCDate() - daysSinceFriday);
   return dateParts(kst);
 }
 
-function sameBroadcastDate(a, b) {
-  return a.date === b.date && String(a.year) === String(b.year);
+function toUtcDate(parts) {
+  const [month, day] = parts.date.split('.').map(Number);
+  return Date.UTC(Number(parts.year), month - 1, day);
+}
+
+function isCurrentWeekPost(postDate, targetDate) {
+  const daysBeforeBroadcast = Math.round((toUtcDate(targetDate) - toUtcDate(postDate)) / 86400000);
+  return daysBeforeBroadcast >= 0 && daysBeforeBroadcast <= 4;
 }
 
 function deferOrFail(message) {
@@ -188,10 +193,9 @@ async function main() {
   const html = fs.readFileSync(INDEX_PATH, 'utf8');
   const rawData = readRawData(html);
 
-  const scheduledRun = process.env.GITHUB_EVENT_NAME === 'schedule';
-  const target = scheduledRun ? scheduledBroadcastDate() : null;
+  const target = targetBroadcastDate();
 
-  if (target && rawData.some(r => r.date === target.date && String(r.year) === target.year)) {
+  if (rawData.some(r => r.date === target.date && String(r.year) === target.year)) {
     console.log(`이미 ${target.year}년 ${target.date} 항목이 존재합니다. 종료.`);
     return;
   }
@@ -206,12 +210,12 @@ async function main() {
   console.log('게시물 게시 시점:', published || '(알 수 없음 - 오늘 날짜로 대체)');
   console.log('게시물 원문:\n' + postText);
 
-  const postDate = published ? resolveDate(published) : todayDate();
-  if (target && !sameBroadcastDate(postDate, target)) {
-    deferOrFail(`최신 게시물이 이번 주 방송분이 아닙니다. 최신=${postDate.year}.${postDate.date}, 대상=${target.year}.${target.date}`);
+  const postPublishedDate = published ? resolveDate(published) : todayDate();
+  if (!isCurrentWeekPost(postPublishedDate, target)) {
+    deferOrFail(`최신 게시물이 이번 주 방송분이 아닙니다. 게시=${postPublishedDate.year}.${postPublishedDate.date}, 방송=${target.year}.${target.date}`);
     return;
   }
-  const { date, year } = postDate;
+  const { date, year } = target;
 
   // 연도와 날짜를 함께 비교해 다른 해의 같은 MM.DD와 충돌하지 않도록 합니다.
   if (rawData.some(r => r.date === date && String(r.year) === String(year))) {
