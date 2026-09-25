@@ -7,7 +7,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const TMDB_KEY = process.env.TMDB_KEY || 'eeb851ae2777074ea0c4d84f1e21aa12';
+const TMDB_KEY = process.env.TMDB_KEY;
+if (!TMDB_KEY) {
+  throw new Error('TMDB_KEY GitHub Secret이 설정되어 있지 않습니다.');
+}
 // GitHub Actions: __dirname = 저장소 루트 → public/tmdb-cache.json
 // 로컬: __dirname = cinemahell/ → github/cinemahell/public/tmdb-cache.json
 const isCI = !!process.env.GITHUB_ACTIONS;
