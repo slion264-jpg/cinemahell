@@ -10,7 +10,12 @@
 const fs = require('fs');
 const path = require('path');
 
-const TMDB_KEY = process.env.TMDB_KEY || 'eeb851ae2777074ea0c4d84f1e21aa12';
+const TMDB_KEY = process.env.TMDB_KEY;
+const FINAL_ATTEMPT = process.env.FINAL_ATTEMPT === 'true';
+
+if (!TMDB_KEY) {
+  throw new Error('TMDB_KEY GitHub Secret이 설정되어 있지 않습니다.');
+}
 
 const REPO_ROOT = __dirname;
 const INDEX_PATH = path.join(REPO_ROOT, 'public', 'index.html');
@@ -25,10 +30,19 @@ async function apiFetch(url) {
   return res.json();
 }
 
+function normalizeTitle(title) {
+  return title
+    .replace(/\s*[\(\[]\s*\d+\s*부작\s*[\)\]]\s*$/i, '')
+    .replace(/\s*[\(\[]\s*(?:시리즈|드라마|영화|다큐(?:멘터리)?)\s*[\)\]]\s*$/i, '')
+    .trim();
+}
+
 async function findYear(title) {
-  const simplTitle = title.replace(/[:\-–·,]/g, ' ').replace(/\s+/g, ' ').trim();
+  const normalizedTitle = normalizeTitle(title);
+  const simplTitle = normalizedTitle.replace(/[:\-–·,]/g, ' ').replace(/\s+/g, ' ').trim();
+  const candidates = [...new Set([title, normalizedTitle, simplTitle].filter(Boolean))];
   for (const type of ['movie', 'tv']) {
-    for (const t of [title, simplTitle]) {
+    for (const t of candidates) {
       const q = encodeURIComponent(t);
       const data = await apiFetch(`https://api.themoviedb.org/3/search/${type}?api_key=${TMDB_KEY}&query=${q}&language=ko-KR&include_adult=false`);
       const r = (data.results || [])[0];
@@ -38,7 +52,7 @@ async function findYear(title) {
       }
     }
   }
-  const q = encodeURIComponent(title);
+  const q = encodeURIComponent(normalizedTitle);
   const data = await apiFetch(`https://api.themoviedb.org/3/search/multi?api_key=${TMDB_KEY}&query=${q}&language=ko-KR&include_adult=false`);
   const r = (data.results || []).find(x => x.media_type === 'movie' || x.media_type === 'tv');
   if (r) {
@@ -95,9 +109,9 @@ function extractPostText(post) {
 function resolveDate(publishedText) {
   const now = new Date();
   const d = new Date(now);
-  const dayMatch = publishedText.match(/(\d+)\s*일\s*전/);
-  const weekMatch = publishedText.match(/(\d+)\s*주\s*전/);
-  const monthMatch = publishedText.match(/(\d+)\s*개월\s*전/);
+  const dayMatch = publishedText.match(/(\d+)\s*(?:일\s*전|days?\s+ago)/i);
+  const weekMatch = publishedText.match(/(\d+)\s*(?:주\s*전|weeks?\s+ago)/i);
+  const monthMatch = publishedText.match(/(\d+)\s*(?:개월\s*전|months?\s+ago)/i);
   if (monthMatch) d.setMonth(d.getMonth() - parseInt(monthMatch[1], 10));
   else if (weekMatch) d.setDate(d.getDate() - parseInt(weekMatch[1], 10) * 7);
   else if (dayMatch) d.setDate(d.getDate() - parseInt(dayMatch[1], 10));
@@ -127,11 +141,35 @@ function parsePost(text) {
 }
 
 // ── 오늘 날짜 기준 MM.DD / 연도 ────────────────────────────────
+function dateParts(d) {
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(d.getUTCDate()).padStart(2, '0');
+  return { date: `${mm}.${dd}`, year: String(d.getUTCFullYear()) };
+}
+
 function todayDate() {
-  const now = new Date();
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const dd = String(now.getDate()).padStart(2, '0');
-  return { date: `${mm}.${dd}`, year: String(now.getFullYear()) };
+  return dateParts(new Date());
+}
+
+// 예약 실행 구간은 금요일 22:00~토요일 00:00 KST입니다.
+// 토요일 00:00 실행도 직전 금요일 방송분을 대상으로 처리합니다.
+function scheduledBroadcastDate() {
+  const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  if (kst.getUTCDay() === 6 && kst.getUTCHours() <= 1) {
+    kst.setUTCDate(kst.getUTCDate() - 1);
+  }
+  return dateParts(kst);
+}
+
+function sameBroadcastDate(a, b) {
+  return a.date === b.date && String(a.year) === String(b.year);
+}
+
+function deferOrFail(message) {
+  console.log(message);
+  if (FINAL_ATTEMPT) {
+    throw new Error('자정 최종 확인 실패: ' + message);
+  }
 }
 
 // ── RAW_DATA 읽기 ──────────────────────────────────────────────
@@ -150,27 +188,40 @@ async function main() {
   const html = fs.readFileSync(INDEX_PATH, 'utf8');
   const rawData = readRawData(html);
 
+  const scheduledRun = process.env.GITHUB_EVENT_NAME === 'schedule';
+  const target = scheduledRun ? scheduledBroadcastDate() : null;
+
+  if (target && rawData.some(r => r.date === target.date && String(r.year) === target.year)) {
+    console.log(`이미 ${target.year}년 ${target.date} 항목이 존재합니다. 종료.`);
+    return;
+  }
+
   console.log('유튜브 최신 게시물 확인 중...');
   const post = await getLatestCinemahellPost();
   if (!post) {
-    console.log('시네마지옥 게시물을 찾지 못했습니다. 종료.');
+    deferOrFail('시네마지옥 게시물을 찾지 못했습니다.');
     return;
   }
   const { text: postText, published } = post;
   console.log('게시물 게시 시점:', published || '(알 수 없음 - 오늘 날짜로 대체)');
   console.log('게시물 원문:\n' + postText);
 
-  const { date, year } = published ? resolveDate(published) : todayDate();
+  const postDate = published ? resolveDate(published) : todayDate();
+  if (target && !sameBroadcastDate(postDate, target)) {
+    deferOrFail(`최신 게시물이 이번 주 방송분이 아닙니다. 최신=${postDate.year}.${postDate.date}, 대상=${target.year}.${target.date}`);
+    return;
+  }
+  const { date, year } = postDate;
 
-  // 이미 오늘 날짜로 등록된 게 있으면 중복으로 보고 종료
-  if (rawData.some(r => r.date === date)) {
-    console.log(`이미 ${date} 항목이 존재합니다. 종료.`);
+  // 연도와 날짜를 함께 비교해 다른 해의 같은 MM.DD와 충돌하지 않도록 합니다.
+  if (rawData.some(r => r.date === date && String(r.year) === String(year))) {
+    console.log(`이미 ${year}년 ${date} 항목이 존재합니다. 종료.`);
     return;
   }
 
   const parsed = parsePost(postText);
   if (parsed.length === 0) {
-    console.log('추천작 라인을 찾지 못했습니다. 종료.');
+    deferOrFail('추천작 라인을 찾지 못했습니다.');
     return;
   }
 
@@ -178,21 +229,23 @@ async function main() {
   const unresolved = [];
   const resolvedEntries = [];
   for (const p of parsed) {
-    const found = await findYear(p.rawTitle);
+    const cleanTitle = normalizeTitle(p.rawTitle);
+    const found = await findYear(cleanTitle);
     if (!found) {
       unresolved.push(p);
       continue;
     }
     const title = p.recommender === '게스트'
-      ? `${p.rawTitle} (${found.year}) - ${p.guestName}`
-      : `${p.rawTitle} (${found.year})`;
+      ? `${cleanTitle} (${found.year}) - ${p.guestName}`
+      : `${cleanTitle} (${found.year})`;
     resolvedEntries.push({ date, year, recommender: p.recommender, title });
   }
 
   if (unresolved.length > 0) {
     console.log(`[시네마지옥 자동 업데이트 보류] TMDB에서 개봉연도를 찾지 못한 작품이 있어 이번 주는 자동 반영하지 않았습니다:`);
     unresolved.forEach(u => console.log(`  - ${u.recommender === '게스트' ? u.guestName : u.recommender}: ${u.rawTitle}`));
-    console.log(`확인 후 index.html에 직접 추가해 주세요. (나머지 ${resolvedEntries.length}개는 문제없이 찾았지만, 이번 주는 전체를 보류합니다.)`);
+    const message = `확인 후 index.html에 직접 추가해 주세요. (나머지 ${resolvedEntries.length}개는 문제없이 찾았지만, 이번 주는 전체를 보류합니다.)`;
+    deferOrFail(message);
     return; // 커밋하지 않음
   }
 
