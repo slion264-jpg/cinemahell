@@ -2,8 +2,12 @@ name: 시네마지옥 주간 업데이트
 
 on:
   schedule:
-    - cron: '0 11 * * 5'   # 매주 금요일 20:00 KST (UTC 11:00)
-  workflow_dispatch:        # Actions 탭에서 수동 실행 버튼
+    - cron: '0 13 * * 5'    # 금요일 22:00 KST
+    - cron: '30 13 * * 5'   # 금요일 22:30 KST
+    - cron: '0 14 * * 5'    # 금요일 23:00 KST
+    - cron: '30 14 * * 5'   # 금요일 23:30 KST
+    - cron: '0 15 * * 5'    # 토요일 00:00 KST (UTC는 금요일)
+  workflow_dispatch:          # Actions 탭에서 수동 실행 버튼
 
 permissions:
   contents: write
@@ -19,14 +23,16 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install dependencies
         run: npm install youtubei.js node-fetch
 
       - name: 시네마지옥 추천작 확인 및 반영
+        id: weekly-update
         env:
           TMDB_KEY: ${{ secrets.TMDB_KEY }}
+          FINAL_ATTEMPT: ${{ github.event_name == 'schedule' && github.event.schedule == '0 15 * * 5' }}
         run: node weekly-update.js
 
       - name: 변경사항 커밋 및 푸시
