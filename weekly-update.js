@@ -21,7 +21,7 @@ const REPO_ROOT = __dirname;
 const INDEX_PATH = path.join(REPO_ROOT, 'public', 'index.html');
 const SITEMAP_PATH = path.join(REPO_ROOT, 'public', 'sitemap.xml');
 
-const FIXED_RECOMMENDERS = ['전찬일', '라이너', '거의없다', '최광희'];
+const FIXED_RECOMMENDERS = ['전찬일', '라이너', '거의없다', '최광희', '최욱', '정영진'];
 
 const NON_TMDB_ENTRIES = {
   '쇼팔로비치 유랑극단': {
