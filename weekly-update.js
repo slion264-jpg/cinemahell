@@ -23,6 +23,15 @@ const SITEMAP_PATH = path.join(REPO_ROOT, 'public', 'sitemap.xml');
 
 const FIXED_RECOMMENDERS = ['전찬일', '라이너', '거의없다', '최광희'];
 
+const NON_TMDB_ENTRIES = {
+  '쇼팔로비치 유랑극단': {
+    subtitle: '연극',
+    posterOverride: 'posters/shpalovich_troupe_2026.jpg',
+    tmdbSkip: true,
+    searchSuffix: '연극',
+  },
+};
+
 // ── TMDB 조회 (build-tmdb-cache.js와 동일 검색 전략) ──────────
 async function apiFetch(url) {
   const { default: fetch } = await import('node-fetch');
@@ -185,7 +194,19 @@ function readRawData(html) {
 }
 
 function buildEntryBlock(entry) {
-  return `  {\n    "date": "${entry.date}",\n    "year": "${entry.year}",\n    "recommender": "${entry.recommender}",\n    "title": "${entry.title.replace(/"/g, '\\"')}"\n  },\n`;
+  const ordered = {
+    date: entry.date,
+    year: entry.year,
+    recommender: entry.recommender,
+    title: entry.title,
+  };
+  for (const key of ['subtitle', 'posterOverride', 'tmdbSkip', 'searchSuffix']) {
+    if (entry[key] !== undefined) ordered[key] = entry[key];
+  }
+  return JSON.stringify(ordered, null, 2)
+    .split('\n')
+    .map(line => '  ' + line)
+    .join('\n') + ',\n';
 }
 
 // ── 메인 ─────────────────────────────────────────────────────
@@ -234,6 +255,14 @@ async function main() {
   const resolvedEntries = [];
   for (const p of parsed) {
     const cleanTitle = normalizeTitle(p.rawTitle);
+    const special = NON_TMDB_ENTRIES[cleanTitle];
+    if (special) {
+      const title = p.recommender === '게스트'
+        ? `${cleanTitle} - ${p.guestName}`
+        : cleanTitle;
+      resolvedEntries.push({ date, year, recommender: p.recommender, title, ...special });
+      continue;
+    }
     const found = await findYear(cleanTitle);
     if (!found) {
       unresolved.push(p);
