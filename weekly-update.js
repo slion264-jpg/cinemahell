@@ -3,7 +3,7 @@
  * 매주 금요일 GitHub Actions에서 실행 — 매불쇼 유튜브 커뮤니티의 최신 '시네마 지옥' 게시물을 확인해
  * public/index.html의 RAW_DATA에 새 추천작을 자동으로 추가하고 커밋합니다(푸시는 워크플로우가 담당).
  *
- * TMDB에서 개봉연도를 찾지 못하는 작품이 하나라도 있으면 아무것도 반영하지 않고 로그만 남긴 채 종료합니다
+ * TMDB 또는 출처가 명시된 공식 공개일에서 연도를 확인하지 못하는 작품이 하나라도 있으면 전체를 보류합니다.
  * — 잘못된 데이터가 사이트에 반영되는 것을 막기 위함입니다. (Actions 로그에서 확인 후 index.html에 직접 추가)
  */
 
@@ -32,6 +32,15 @@ const NON_TMDB_ENTRIES = {
   },
 };
 
+// TMDB indexes Lupin as a series, not as a separate title for each Netflix part.
+// Preserve the recommended part and its verified release year, not the series' 2021 debut.
+const VERIFIED_RELEASES = {
+  '뤼팽 파트 4': {
+    releaseDate: '2026-10-23',
+    source: 'https://www.netflix.com/tudum/articles/lupin-part-4-release-date-photos-news',
+  },
+};
+
 // ── TMDB 조회 (build-tmdb-cache.js와 동일 검색 전략) ──────────
 async function apiFetch(url) {
   const { default: fetch } = await import('node-fetch');
@@ -48,6 +57,11 @@ function normalizeTitle(title) {
 
 async function findYear(title) {
   const normalizedTitle = normalizeTitle(title);
+  const verified = VERIFIED_RELEASES[normalizedTitle];
+  if (verified) {
+    console.log(`공식 공개일 확인: ${normalizedTitle} ${verified.releaseDate} (${verified.source})`);
+    return { year: verified.releaseDate.slice(0, 4), matchedTitle: normalizedTitle };
+  }
   const simplTitle = normalizedTitle.replace(/[:\-–·,]/g, ' ').replace(/\s+/g, ' ').trim();
   const candidates = [...new Set([title, normalizedTitle, simplTitle].filter(Boolean))];
   for (const type of ['movie', 'tv']) {
@@ -303,3 +317,4 @@ main().catch(e => {
   console.error('실패:', e);
   process.exit(1);
 });
+

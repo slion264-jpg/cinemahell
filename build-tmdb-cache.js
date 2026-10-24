@@ -19,6 +19,9 @@ const OUT_PATH = isCI
   : path.join(__dirname, 'github', 'cinemahell', 'public', 'tmdb-cache.json');
 
 const TMDB_ID_MAP = {
+  // Netflix Part 4 (2026-10-23); series metadata: https://www.themoviedb.org/tv/96677-lupin
+  // Release source: https://www.netflix.com/tudum/articles/lupin-part-4-release-date-photos-news
+  '뤼팽 파트 4__2026': { id: 96677, type: 'tv', releaseDate: '2026-10-23' },
   '삼체__2024':           { id: 108545, type: 'tv' },
   '탄생__2022':           { id: 881677, type: 'movie' },
   '헌트__2022':           { id: 727340, type: 'movie' },
@@ -90,7 +93,7 @@ async function fetchTMDB(title, year) {
     const poster = m.poster_path ? `https://image.tmdb.org/t/p/w342${m.poster_path}` : null;
     const rating = m.vote_average ? Math.round(m.vote_average * 10) / 10 : null;
     const genres = (m.genres || m.genre_ids || []).map(g => typeof g === 'object' ? g.name : (genreMap[g] || '')).filter(Boolean).slice(0,3);
-    const releaseDate = m.release_date || m.first_air_date || null;
+    const releaseDate = mapEntry?.releaseDate || m.release_date || m.first_air_date || null;
     const id = m.id;
     const ottList = await getOttList(id, type);
     return { poster, rating, voteCount: m.vote_count || 0, overview: m.overview || '', genres, tmdbId: id, mediaType: type, releaseDate, ottList };
@@ -177,3 +180,4 @@ main().catch(e => {
   console.error('캐시 빌드 실패 (기존 캐시 유지):', e.message);
   process.exit(0); // 배포는 계속 진행
 });
+
