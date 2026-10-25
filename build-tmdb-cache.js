@@ -19,6 +19,7 @@ const OUT_PATH = isCI
   : path.join(__dirname, 'github', 'cinemahell', 'public', 'tmdb-cache.json');
 
 const TMDB_ID_MAP = {
+  '쇼군__2024':           { id: 126308, type: 'tv' }, // FX / Disney+ series
   '삼체__2024':           { id: 108545, type: 'tv' },
   '탄생__2022':           { id: 881677, type: 'movie' },
   '헌트__2022':           { id: 727340, type: 'movie' },
