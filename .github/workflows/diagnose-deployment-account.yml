@@ -1,0 +1,32 @@
+name: Deployment account identity check (one-off)
+
+on:
+  push:
+    branches:
+      - diag/firebase-account-match-20261026
+    paths:
+      - .github/workflows/diagnose-deployment-account.yml
+
+permissions: {}
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Compare configured identity without disclosing credentials
+        shell: python {0}
+        env:
+          ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          import json
+          import os
+          
+          result = "INVALID_SECRET"
+          try:
+              data = json.loads(os.environ.pop("ACCOUNT_JSON", ""))
+              if isinstance(data, dict) and data.get("type") == "service_account" and isinstance(data.get("client_email"), str) and data["client_email"]:
+                  result = "MATCH" if data["client_email"] == "firebase-adminsdk-fbsvc@cinemahell-a3f39.iam.gserviceaccount.com" else "NO_MATCH"
+          except Exception:
+              pass
+          print(result)
