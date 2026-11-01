@@ -347,6 +347,7 @@
   .tag-거의없다 { background: #f9731620; color: #fb923c; border: 1px solid #f9731640; }
   .tag-최욱 { background: #ec489920; color: #f472b6; border: 1px solid #ec489940; }
   .tag-정영진 { background: #14b8a620; color: #2dd4bf; border: 1px solid #14b8a640; }
+  .tag-곽수산 { background: #0ea5e920; color: #38bdf8; border: 1px solid #0ea5e940; }
   .tag-게스트 { background: #8b5cf620; color: #a78bfa; border: 1px solid #8b5cf640; }
 
   .card-title {
@@ -960,6 +961,7 @@
         <button class="filter-btn" onclick="setFilter('recommender','거의없다')">거의없다</button>
         <button class="filter-btn" onclick="setFilter('recommender','최욱')">최욱</button>
         <button class="filter-btn" onclick="setFilter('recommender','정영진')">정영진</button>
+        <button class="filter-btn" onclick="setFilter('recommender','곽수산')">곽수산</button>
         <button class="filter-btn" onclick="setFilter('recommender','게스트')">게스트</button>
       </div>
     </div>
@@ -1067,7 +1069,7 @@
       <label style="color:var(--text2);font-size:13px">추천인
         <select id="editRecommender" style="display:block;width:100%;margin-top:4px;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:14px">
           <option>라이너</option><option>전찬일</option><option>최광희</option><option>거의없다</option>
-          <option>최욱</option><option>정영진</option><option>게스트</option>
+          <option>최욱</option><option>정영진</option><option>곽수산</option><option>게스트</option>
         </select>
       </label>
       <label style="color:var(--text2);font-size:13px">방영연도
@@ -1178,7 +1180,8 @@ const RAW_DATA = [
   {
     "date": "10.23",
     "year": "2026",
-    "recommender": "게스트",
+    "recommender": "곽수산",
+    "legacyRecommender": "게스트",
     "title": "뤼팽 파트 4 (2026) - 곽수산",
     "posterOverride": "posters/lupin-part4-2026.webp",
     "posterFit": "contain",
@@ -2602,7 +2605,8 @@ const RAW_DATA = [
   {
     "date": "07.25",
     "year": "2025",
-    "recommender": "게스트",
+    "recommender": "곽수산",
+    "legacyRecommender": "게스트",
     "title": "84제곱미터 (2025) - 곽수산"
   },
   {
@@ -3993,7 +3997,8 @@ const RAW_DATA = [
   {
     "date": "05.17",
     "year": "2024",
-    "recommender": "게스트",
+    "recommender": "곽수산",
+    "legacyRecommender": "게스트",
     "title": "그녀가 죽었다 (2024) - 곽수산"
   },
   {
@@ -4095,7 +4100,8 @@ const RAW_DATA = [
   {
     "date": "04.19",
     "year": "2024",
-    "recommender": "게스트",
+    "recommender": "곽수산",
+    "legacyRecommender": "게스트",
     "title": "기생수: 더 그레이 (2024) - 곽수산"
   },
   {
@@ -4317,7 +4323,8 @@ const RAW_DATA = [
   {
     "date": "02.23",
     "year": "2024",
-    "recommender": "게스트",
+    "recommender": "곽수산",
+    "legacyRecommender": "게스트",
     "title": "카케구루이 (2018) - 곽수산"
   },
   {
@@ -4407,7 +4414,8 @@ const RAW_DATA = [
   {
     "date": "02.02",
     "year": "2024",
-    "recommender": "게스트",
+    "recommender": "곽수산",
+    "legacyRecommender": "게스트",
     "title": "선산 (2024) - 곽수산"
   },
   {
@@ -4437,7 +4445,8 @@ const RAW_DATA = [
   {
     "date": "01.26",
     "year": "2024",
-    "recommender": "게스트",
+    "recommender": "곽수산",
+    "legacyRecommender": "게스트",
     "title": "경성크리처 (2023) - 곽수산"
   },
   {
@@ -4611,7 +4620,8 @@ const RAW_DATA = [
   {
     "date": "12.15",
     "year": "2023",
-    "recommender": "게스트",
+    "recommender": "곽수산",
+    "legacyRecommender": "게스트",
     "title": "아메리칸 스나이퍼 (2014) - 곽수산"
   },
   {
@@ -4659,7 +4669,8 @@ const RAW_DATA = [
   {
     "date": "12.01",
     "year": "2023",
-    "recommender": "게스트",
+    "recommender": "곽수산",
+    "legacyRecommender": "게스트",
     "title": "뤼팽 (2023) - 곽수산",
     "subtitle": "파트 3"
   },
@@ -4810,7 +4821,8 @@ const RAW_DATA = [
   {
     "date": "10.27",
     "year": "2023",
-    "recommender": "게스트",
+    "recommender": "곽수산",
+    "legacyRecommender": "게스트",
     "title": "고고70 (2008) - 곽수산"
   },
   {
@@ -7907,7 +7919,17 @@ function parseTitle(raw) {
 }
 
 function getMovieKey(m) {
-  return `${m.title}__${m.recommender}__${m.year}__${m.date}`;
+  // Preserve bookmarks, ratings and community statistics when a guest is promoted.
+  return `${m.title}__${m.legacyRecommender || m.recommender}__${m.year}__${m.date}`;
+}
+
+function promoteKwakRecommendations(rows) {
+  rows.forEach(m => {
+    if (m.recommender === '게스트' && parseTitle(m.title).guestName === '곽수산') {
+      m.legacyRecommender = m.legacyRecommender || m.recommender;
+      m.recommender = '곽수산';
+    }
+  });
 }
 
 // Only opted-in artwork uses contain; preserve the full poster in every view.
@@ -7918,7 +7940,7 @@ function posterImageStyle(m) {
 }
 
 // 추천자 정렬 우선순위
-const RECOMMENDER_ORDER = ['라이너','전찬일','최광희','거의없다','최욱','정영진','게스트'];
+const RECOMMENDER_ORDER = ['라이너','전찬일','최광희','거의없다','최욱','정영진','곽수산','게스트'];
 
 function parseDate(m) {
   // "MM.DD" → Date 객체 (점이 두 개여도 안전하게 split으로 처리)
@@ -8865,7 +8887,9 @@ function saveEdit() {
   // 캐시 삭제 (제목 변경 시 TMDB 재검색)
   delete state.movieCache[editTargetKey];
   delete tmdbCache[`${RAW_DATA[idx].title.replace(/\s*\(\d{4}\)$/,'').trim()}__${RAW_DATA[idx].title.match(/\((\d{4})\)$/)?.[1]||null}`];
-  RAW_DATA[idx] = { date: newDate, year: newYear, recommender: newRec, title: newTitle };
+  const legacyRecommender = RAW_DATA[idx].legacyRecommender;
+  RAW_DATA[idx] = { date: newDate, year: newYear, recommender: newRec, title: newTitle,
+    ...(legacyRecommender ? { legacyRecommender } : {}) };
   // 로컬스토리지에 수정 내용 저장
   saveEditsToStorage();
   document.getElementById('editMsg').textContent = '✅ 저장됐습니다.';
@@ -8911,6 +8935,8 @@ function saveEditsToStorage() {
 // ============================================================
 // 초기화
 // ============================================================
+// Apply the same promotion to previously saved local edits without replacing them.
+promoteKwakRecommendations(RAW_DATA);
 document.getElementById('bookmarkCount').textContent = state.bookmarks.size;
 
 // TMDB 캐시 로드 후 movieCache 채우고 렌더링
@@ -9247,7 +9273,7 @@ async function submitPost() {
     <li><strong>2025년 8월 15일 방송</strong>: 독립군: 끝나지 않은 전쟁 (2025) (라이너 추천), 815사수작전 (2025) (전찬일 추천), 부에나 비스타 소셜 클럽 (1999) (최광희 추천)</li>
     <li><strong>2025년 8월 8일 방송</strong>: 도쿄! (2008) (라이너 추천), 시계태엽 오렌지 (1971) (전찬일 추천), 추적 (2025) (최광희 추천), 베이컨시 (2007) (거의없다 추천)</li>
     <li><strong>2025년 8월 1일 방송</strong>: 신성한 나무의 씨앗 (2024) (라이너 추천), 우리 둘 사이에 (2025) (전찬일 추천), 보이후드 (2014) (최광희 추천), 언테임드 (2025) (거의없다 추천)</li>
-    <li><strong>2025년 7월 25일 방송</strong>: 망국전쟁: 뉴라이트의 시작 (2025) (라이너 추천), 사의 찬미 (전찬일 추천), 아멜리에 (2001) (최광희 추천), 본 콜렉터 (1999) (거의없다 추천), 84제곱미터 (2025) (게스트 추천)</li>
+    <li><strong>2025년 7월 25일 방송</strong>: 망국전쟁: 뉴라이트의 시작 (2025) (라이너 추천), 사의 찬미 (전찬일 추천), 아멜리에 (2001) (최광희 추천), 본 콜렉터 (1999) (거의없다 추천), 84제곱미터 (2025) (곽수산 추천)</li>
     <li><strong>2025년 7월 18일 방송</strong>: 샷 콜러(2018) (라이너 추천), 킹 오브 킹스 (2025) (전찬일 추천), 위아영 (2014) (최광희 추천), 블랙 백 (2025) (거의없다 추천)</li>
     <li><strong>2025년 7월 11일 방송</strong>: 장교와 스파이 (2019) (라이너 추천), 봄밤 (2025) (전찬일 추천), 렛미인 (2025) (최광희 추천), 호텔 뭄바이 (2019) (거의없다 추천)</li>
     <li><strong>2025년 7월 4일 방송</strong>: 프라이멀 피어 (1996) (라이너 추천), 김약국의 딸들 (1963) (전찬일 추천), 쥬라기 월드: 새로운 시작 (2025) (최광희 추천), 7월 4일생 (1989) (거의없다 추천)</li>
@@ -9306,11 +9332,11 @@ async function submitPost() {
     <li><strong>2024년 6월 7일 방송</strong>: 만추 (2011) (라이너 추천), 다섯 번째 방 (2024) (전찬일 추천), 플로리다 프로젝트 (2017) (최광희 추천), 핵소 고지 (2016) (거의없다 추천), 바람 (2009) (게스트 추천)</li>
     <li><strong>2024년 5월 31일 방송</strong>: 트루스 (2015) (라이너 추천), 플랜 75 (2022) (전찬일 추천), 판타스틱 소녀백서 (2001) (최광희 추천), 더 퍼지 (2013) (거의없다 추천)</li>
     <li><strong>2024년 5월 24일 방송</strong>: 드롭아웃 (2022) (라이너 추천), 목화솜 피는 날 (2024) (전찬일 추천), 노 맨스 랜드 (2001) (최광희 추천), 드림 시나리오 (2023) (거의없다 추천)</li>
-    <li><strong>2024년 5월 17일 방송</strong>: 악마와의 토크쇼 (2024) (라이너 추천), GO (2002) (최광희 추천), 디센트 (2005) (거의없다 추천), The 8 Show (2024) (게스트 추천), 그녀가 죽었다 (2024) (게스트 추천)</li>
+    <li><strong>2024년 5월 17일 방송</strong>: 악마와의 토크쇼 (2024) (라이너 추천), GO (2002) (최광희 추천), 디센트 (2005) (거의없다 추천), The 8 Show (2024) (게스트 추천), 그녀가 죽었다 (2024) (곽수산 추천)</li>
     <li><strong>2024년 5월 10일 방송</strong>: 디태치먼트 (2011) (라이너 추천), 가시꽃 (2012) (전찬일 추천), 트루맛쇼 (2011) (최광희 추천), 로건 럭키 (2017) (거의없다 추천)</li>
     <li><strong>2024년 5월 3일 방송</strong>: 몰리스 게임 (2017) (라이너 추천), 차이콥스키의 아내 (2022) (전찬일 추천), 코타키 형제와 사고팔고 (2020) (최광희 추천), 드라이브 (2011) (거의없다 추천)</li>
     <li><strong>2024년 4월 26일 방송</strong>: 굿 윌 헌팅 (1997) (라이너 추천), 모르는 이야기 (2023) (전찬일 추천), 런치박스 (2013) (최광희 추천), 스네이크 아이즈 (1998) (거의없다 추천)</li>
-    <li><strong>2024년 4월 19일 방송</strong>: 로스트 인 더스트 (2016) (라이너 추천), 정순 (2024) (전찬일 추천), 웰컴, 삼바 (2014) (최광희 추천), 인썸니아 (2002) (거의없다 추천), 기생수: 더 그레이 (2024) (게스트 추천)</li>
+    <li><strong>2024년 4월 19일 방송</strong>: 로스트 인 더스트 (2016) (라이너 추천), 정순 (2024) (전찬일 추천), 웰컴, 삼바 (2014) (최광희 추천), 인썸니아 (2002) (거의없다 추천), 기생수: 더 그레이 (2024) (곽수산 추천)</li>
     <li><strong>2024년 4월 12일 방송</strong>: 제로 다크 서티 (2012) (라이너 추천), 은하수 (2024) (전찬일 추천), 계몽영화 (2009) (최광희 추천), 케이프 피어 (1962) (거의없다 추천), 은하해방전선 (2014) (게스트 추천)</li>
     <li><strong>2024년 4월 5일 방송</strong>: 악은 존재하지 않는다 (2024) (라이너 추천), 그날의 딸들 (2023) (전찬일 추천), 행복 목욕탕 (2016) (최광희 추천), 바람의 세월 (2024) (거의없다 추천), 흐르는 강물처럼 (1992) (게스트 추천)</li>
     <li><strong>2024년 3월 29일 방송</strong>: 펀치 드렁크 러브 (2002) (라이너 추천), 목스박 (2024) (전찬일 추천), 작은 아씨들 (2019) (최광희 추천), 스윙 보트 (2018) (거의없다 추천)</li>
@@ -9318,24 +9344,24 @@ async function submitPost() {
     <li><strong>2024년 3월 15일 방송</strong>: 로봇 드림 (2023) (라이너 추천), 돌핀 (2024) (전찬일 추천), 레이니 데이 인 뉴욕 (2019) (최광희 추천), 인사이드 르윈 (2013) (거의없다 추천)</li>
     <li><strong>2024년 3월 8일 방송</strong>: 가여운 것들 (2023) (라이너 추천), 나이애드의 다섯 번째 파도 (2023) (전찬일 추천), 마에스트로 번스타인 (2023) (최광희 추천), 플라워 킬링 문 (2023) (거의없다 추천)</li>
     <li><strong>2024년 3월 1일 방송</strong>: 파운더 (2016) (라이너 추천), 메모리아 (2021) (전찬일 추천), 싱 스트리트 (2016) (최광희 추천), 오블리비언 (2013) (거의없다 추천), 특별시민 (2017) (최욱 추천), 굿모닝 프레지던트 (2009) (게스트 추천)</li>
-    <li><strong>2024년 2월 23일 방송</strong>: 프레스티지 (2016) (라이너 추천), 벗어날 탈 脫 (2024) (전찬일 추천), 오키쿠와 세계 (2023) (최광희 추천), 백년전쟁: 두 얼굴의 이승만 (2012) (거의없다 추천), 카케구루이 (2018) (게스트 추천)</li>
+    <li><strong>2024년 2월 23일 방송</strong>: 프레스티지 (2016) (라이너 추천), 벗어날 탈 脫 (2024) (전찬일 추천), 오키쿠와 세계 (2023) (최광희 추천), 백년전쟁: 두 얼굴의 이승만 (2012) (거의없다 추천), 카케구루이 (2018) (곽수산 추천)</li>
     <li><strong>2024년 2월 16일 방송</strong>: 사바하 (2019) (라이너 추천), 귀신 (2020) (전찬일 추천), 로렌스 애니웨이 (2012) (최광희 추천), 슬리피 할로우 (1999) (거의없다 추천), 라스트 킹 (2006) (최욱 추천), 소풍 (2024) (게스트 추천)</li>
     <li><strong>2024년 2월 9일 방송</strong>: 더 메뉴 (2022) (라이너 추천), 아네모네 (2024) (전찬일 추천), 사랑에 빠진 것처럼 (2012) (최광희 추천), 사랑도 통역이 되나요? (2003) (거의없다 추천)</li>
-    <li><strong>2024년 2월 2일 방송</strong>: 비욘드 유토피아 (2024) (라이너 추천), 추락의 해부 (2023) (전찬일 추천), 루퍼 (2012) (거의없다 추천), 리키시 (2023) (게스트 추천), 선산 (2024) (게스트 추천)</li>
-    <li><strong>2024년 1월 26일 방송</strong>: 울산의 별 (2022) (라이너 추천), 일 부코 (2021) (전찬일 추천), 도그맨 (2023) (최광희 추천), 바디 오브 라이즈 (2008) (거의없다 추천), 경성크리처 (2023) (게스트 추천)</li>
+    <li><strong>2024년 2월 2일 방송</strong>: 비욘드 유토피아 (2024) (라이너 추천), 추락의 해부 (2023) (전찬일 추천), 루퍼 (2012) (거의없다 추천), 리키시 (2023) (게스트 추천), 선산 (2024) (곽수산 추천)</li>
+    <li><strong>2024년 1월 26일 방송</strong>: 울산의 별 (2022) (라이너 추천), 일 부코 (2021) (전찬일 추천), 도그맨 (2023) (최광희 추천), 바디 오브 라이즈 (2008) (거의없다 추천), 경성크리처 (2023) (곽수산 추천)</li>
     <li><strong>2024년 1월 19일 방송</strong>: 맨 인 더 다크 (2016) (라이너 추천), 하얀전쟁 (1992) (전찬일 추천), 와일드 (2014) (최광희 추천), 라스트 나잇 인 소호 (2021) (거의없다 추천), 소년시대 (2023) (게스트 추천)</li>
     <li><strong>2024년 1월 12일 방송</strong>: 눈먼 자들의 도시 (2008) (라이너 추천), 길위에 김대중 (2024) (전찬일 추천), 사랑할 수 없는 두 사람 (2022) (최광희 추천), 인 디 에어 (2009) (거의없다 추천), 붉은 돼지 (1992) (게스트 추천)</li>
     <li><strong>2024년 1월 5일 방송</strong>: 브리짓 존스의 일기 (2001) (라이너 추천), 파주 (2009) (전찬일 추천), 더 웨이 백 (2020) (최광희 추천), 피아니스트 (2002) (거의없다 추천), 진격의 거인 (2013) (게스트 추천)</li>
     <li><strong>2023년 12월 29일 방송</strong>: 오펜하이머 (2023) (라이너 추천), 콘크리트 유토피아 (2023) (전찬일 추천), 서울의 봄 (2023) (최광희 추천), 잠 (2023) (거의없다 추천)</li>
     <li><strong>2023년 12월 22일 방송</strong>: 팀 버튼의 크리스마스 악몽 (1993) (라이너 추천), 5.18 힌츠페터 스토리 (2018) (전찬일 추천), 디 아워스 (2002) (최광희 추천), 지푸라기라도 잡고 싶은 짐승들 (2020) (거의없다 추천), 해피 엔드 (1999) (최욱 추천)</li>
-    <li><strong>2023년 12월 15일 방송</strong>: 당나귀 EO (2022) (라이너 추천), 태 (1986) (전찬일 추천), 리브 더 월드 비하인드 (2023) (최광희 추천), 언터처블 (1987) (거의없다 추천), 아메리칸 스나이퍼 (2014) (게스트 추천)</li>
+    <li><strong>2023년 12월 15일 방송</strong>: 당나귀 EO (2022) (라이너 추천), 태 (1986) (전찬일 추천), 리브 더 월드 비하인드 (2023) (최광희 추천), 언터처블 (1987) (거의없다 추천), 아메리칸 스나이퍼 (2014) (곽수산 추천)</li>
     <li><strong>2023년 12월 8일 방송</strong>: 괴인 (2023) (라이너 추천), 룩앳미 터치미 키스미 (2023) (전찬일 추천), 나폴레옹 (2023) (최광희 추천), 센츄리온 (2010) (거의없다 추천)</li>
-    <li><strong>2023년 12월 1일 방송</strong>: 트럼보 (2015) (라이너 추천), 굿나잇 앤 굿럭 (2005) (최광희 추천), 레슬리에게 (2022) (거의없다 추천), 뤼팽 (2023) (게스트 추천), 플라이트 93 (2006) (최욱 추천), 어른 김장하 (2023) (게스트 추천)</li>
+    <li><strong>2023년 12월 1일 방송</strong>: 트럼보 (2015) (라이너 추천), 굿나잇 앤 굿럭 (2005) (최광희 추천), 레슬리에게 (2022) (거의없다 추천), 뤼팽 (2023) (곽수산 추천), 플라이트 93 (2006) (최욱 추천), 어른 김장하 (2023) (게스트 추천)</li>
     <li><strong>2023년 11월 24일 방송</strong>: 공각기동대 (1995) (라이너 추천), 노란문: 세기말 시네필 다이어리 (2023) (전찬일 추천), 아이히만 쇼 (2015) (거의없다 추천), 외계+인 1부 (2022) (게스트 추천)</li>
     <li><strong>2023년 11월 17일 방송</strong>: 박하사탕 (2000) (라이너 추천), 김복남 살인사건의 전말 (2010) (전찬일 추천), 어거스트: 가족의 초상 (2013) (최광희 추천), 맥베스 (2015) (거의없다 추천)</li>
     <li><strong>2023년 11월 10일 방송</strong>: 언브레이커블 (2000) (라이너 추천), 마이클 클레이튼 (2007) (최광희 추천), 더 킬러 (2023) (거의없다 추천), 더 웨일 (2022) (게스트 추천)</li>
     <li><strong>2023년 11월 3일 방송</strong>: 기예르모 델토로의 피노키오 (2022) (라이너 추천), 흐르다 (2023) (전찬일 추천), 버텨내고 존재하기 (2023) (최광희 추천), 번 애프터 리딩 (2008) (거의없다 추천), 러브 & 드럭스 (2010) (게스트 추천), 플라워 킬링 문 (2023) (게스트 추천)</li>
-    <li><strong>2023년 10월 27일 방송</strong>: 창문 넘어 도망친 100세 노인 (2013) (라이너 추천), 드림팰리스 (2023) (전찬일 추천), 약속 (2023) (최광희 추천), 뮌헨 (2005) (거의없다 추천), 고고70 (2008) (게스트 추천), 다운폴 (2004) (최욱 추천)</li>
+    <li><strong>2023년 10월 27일 방송</strong>: 창문 넘어 도망친 100세 노인 (2013) (라이너 추천), 드림팰리스 (2023) (전찬일 추천), 약속 (2023) (최광희 추천), 뮌헨 (2005) (거의없다 추천), 고고70 (2008) (곽수산 추천), 다운폴 (2004) (최욱 추천)</li>
     <li><strong>2023년 10월 20일 방송</strong>: 더 플랫폼 (2019) (라이너 추천), 콜럼버스 (2017) (전찬일 추천), 치히로 상 (2023) (최광희 추천), 렌필드 (2023) (거의없다 추천), 지-니어스: 카니예 3부작 (2022) (게스트 추천)</li>
     <li><strong>2023년 10월 13일 방송</strong>: 버드맨 (2014) (라이너 추천), 송곳니 (2009) (전찬일 추천), 포가튼 러브 (2023) (최광희 추천), 컨트롤러 (2011) (거의없다 추천), See: 어둠의 나날 (2019) (게스트 추천)</li>
     <li><strong>2023년 10월 6일 방송</strong>: 기상천외한 헨리 슈거 이야기 (2023) (라이너 추천), 하나안 (2011) (전찬일 추천), 원 세컨드 (2020) (최광희 추천), 맨체스터 바이 더 씨 (2016) (거의없다 추천), 베컴 (2023) (게스트 추천)</li>
