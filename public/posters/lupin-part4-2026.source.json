@@ -1,0 +1,21 @@
+{
+  "asset": "lupin-part4-2026.webp",
+  "sha256": "76f73da875dec05f919e48a8cce1be8093e8aadf974f760be7c84da46004a0ff",
+  "width": 960,
+  "height": 1200,
+  "userProvidedUrl": "https://share.google/y0XdAlEqYK6d0e4yY",
+  "sourcePage": "https://muko.kr/ott/20152498",
+  "downloadUrl": "https://muko.kr/files/attach/images/2026/06/09/af36e75a1eb60fd95df77ec9ed424145.webp",
+  "canonicalTitleUrl": "https://www.netflix.com/kr/title/80994082",
+  "officialArtworkReference": "https://www.netflix.com/tudum/lupin",
+  "officialMetadataReferences": [
+    "https://www.netflix.com/tudum/articles/lupin-part-4-release-date-photos-news",
+    "https://media.netflix.com/en/only-on-netflix/80994082"
+  ],
+  "verifiedAt": "2026-11-01",
+  "verification": "User-selected portrait poster hosted by Muko. Visually cross-checked the Eiffel Tower artwork against Netflix Tudum's Lupin Season 4 Key art. PART 4 and OCTOBER 23 lettering agrees with Netflix's Part 4 release information. The identical portrait layout was not directly retrieved from Netflix; the Muko article body was inaccessible behind a bot check. Original downloaded image bytes are preserved.",
+  "recommendationDate": "2026-10-23",
+  "partReleaseDate": "2026-10-23",
+  "seriesFirstReleaseYear": 2021,
+  "metadataPolicy": "Entry-specific verified metadata bypasses automatic TMDB title search and series-level poster/rating substitution. Existing Part 3 metadata is unchanged."
+}
