@@ -35,6 +35,9 @@ jobs:
           FINAL_ATTEMPT: ${{ github.event_name == 'schedule' && github.event.schedule == '0 15 * * 5' }}
         run: node weekly-update.js
 
+      - name: 공개 추천 아카이브 갱신 및 검증
+        run: node generate-seo.js && node generate-seo.js --check
+
       - name: 변경사항 커밋 및 푸시
         id: commit
         run: |

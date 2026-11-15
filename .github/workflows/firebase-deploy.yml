@@ -18,6 +18,9 @@ jobs:
         with:
           node-version: '22'
 
+      - name: 추천 아카이브 생성 및 회귀 검사
+        run: node generate-seo.js && node --test tests/*.test.js && node generate-seo.js --check
+
       - name: Install dependencies
         run: npm install node-fetch
 
