@@ -7,7 +7,7 @@ const { readRows, generate } = require('../generate-seo');
 function setup() {
   const storage = new Map();
   const elements = new Map();
-  const el = id => {if (!elements.has(id)) elements.set(id,{value:'',textContent:'',hidden:false});return elements.get(id);};
+  const el = id => {if (!elements.has(id)) elements.set(id,{value:'',textContent:'',hidden:false,style:{},classList:{toggle(){}},setAttribute(){}});return elements.get(id);};
   const rows = [
     { title:'같은 영화 (2020)',year:'2026',date:'11.13',recommender:'라이너'},
     { title:'같은 영화 (2020) - 게스트',year:'2025',date:'01.01',recommender:'게스트'},
@@ -15,9 +15,9 @@ function setup() {
     { title:'같은 영화 시즌 2 (2020)',year:'2026',date:'11.13',recommender:'전찬일'},
     { title:'미상',year:'2026',date:'11.13',recommender:'전찬일'},
     { title:'미상',year:'2025',date:'11.13',recommender:'전찬일'}];
-  const c = vm.createContext({ console, RAW_DATA: rows, window:{ addEventListener(){} }, alert(){throw Error('unexpected alert');}, renderGrid(){},closePickerModal(){this.closed=(this.closed||0)+1;},document:{getElementById:el},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)}, state:{excludedMovies:new Set(),exclusionUid:null,showExcludedOnly:false,filters:{recommender:'전체',year:'전체',genre:'전체',platform:'전체'},bookmarks:new Set(),myRatings:{},movieCache:{}} });
+  const c = vm.createContext({ console, RAW_DATA: rows, window:{ addEventListener(){} }, alert(){throw Error('unexpected alert');}, renderGrid(){},closePickerModal(){this.closed=(this.closed||0)+1;},document:{getElementById:el},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)}, state:{excludedMovies:new Set(),exclusionUid:null,excludeMarked:true,filters:{recommender:'전체',year:'전체',genre:'전체',platform:'전체'},bookmarks:new Set(),myRatings:{},movieCache:{}} });
   c.closePickerModal = () => { c.closed = (c.closed || 0) + 1; };
-  const names=['parseTitle','getMovieKey','exclusionStorageKey','readExcludedMovies','getExclusionKey','isMovieExcluded','toggleMovieExcluded','toggleExcludedView','filterMovies'];
+  const names=['parseTitle','getMovieKey','exclusionStorageKey','readExcludedMovies','getExclusionKey','isMovieExcluded','toggleMovieExcluded','toggleExcludeMarked','updateFilterBadge','filterMovies'];
   for (const name of names) {
     const start=html.indexOf('function '+name+'('); assert(start>=0);
     const end=html.indexOf('\n}',start)+2;
@@ -48,18 +48,22 @@ test('exclude unrated work hides repeat recommendations but keeps remake and sea
  assert.equal(c.isMovieExcluded(rows[3]),false);
  assert.equal(Object.keys(c.state.myRatings).length,0);
 });
-test('exclude, management and restore work with search and conflicting filters',()=>{
+test('filter defaults on; off permits grid, search, bookmarks and picker; X restores',()=>{
  const {c,rows,el}=setup(); c.toggleMovieExcluded(c.getMovieKey(rows[0]));
  el('searchInput').value='같은 영화'; assert.equal(c.filterMovies().length,2);
- c.state.filters.year='1900';c.state.showBookmarksOnly=true;c.state.excludeWatched=true;
- c.toggleExcludedView();assert.equal(c.filterMovies().length,2);
- c.toggleMovieExcluded(c.getMovieKey(rows[0]));assert.equal(c.filterMovies().length,0);
+ c.state.bookmarks.add(c.getMovieKey(rows[0]));c.state.showBookmarksOnly=true;
+ assert.equal(c.filterMovies().length,0);
+ c.toggleExcludeMarked();assert.equal(c.filterMovies().length,1);assert.equal(c.filterMovies(true).length,1);
+ assert(c.isMovieExcluded(rows[0]));c.toggleMovieExcluded(c.getMovieKey(rows[0]));
+ assert(!c.isMovieExcluded(rows[0]));c.toggleExcludeMarked();assert.equal(c.filterMovies().length,1);
+ c.state.excludeWatched=true;c.state.myRatings[c.getMovieKey(rows[0])]=4;assert.equal(c.filterMovies().length,0);
 });
-test('picker never includes excluded work even in management view',()=>{
- const {c,rows}=setup(); c.toggleMovieExcluded(c.getMovieKey(rows[0]));c.toggleExcludedView();
- assert.equal(c.filterMovies().length,2);assert.equal(c.filterMovies(true).length,4);
- assert(c.filterMovies(true).every(m=>!c.isMovieExcluded(m)));
- assert.match(html,/const pool = filterMovies\(true\);/);
+test('filter badge includes default on and disappears when off; compact controls',()=>{
+ const {c,el}=setup();c.updateFilterBadge();assert.equal(el('filterActiveCount').textContent,1);
+ c.toggleExcludeMarked();c.updateFilterBadge();assert.equal(el('filterActiveCount').style.display,'none');
+ assert.match(html,/excludeMarked: true/);assert.match(html,/id="excludeMarkedBtn"/);
+ assert(!html.includes('id="excludedToggle"'));assert(!html.includes('exclude-movie-btn'));
+ assert.match(html,/class="bookmark-btn exclude-icon/);assert.match(html,/aria-label="\$\{isMovieExcluded/);
 });
 test('saved exclusions survive reload and are separated between accounts and guest',()=>{
  const {c,rows,storage}=setup();c.toggleMovieExcluded(c.getMovieKey(rows[0]));
@@ -89,6 +93,6 @@ test('exclusion changes and account switches invalidate the running picker',()=>
  const {c,rows}=setup();c.toggleMovieExcluded(c.getMovieKey(rows[0]));assert.equal(c.closed,1);
  c.window._setExclusionScope('A');assert.equal(c.closed,2);
  assert.match(html,/if \(pickerResultTimer\) \{ clearTimeout\(pickerResultTimer\)/);
- assert.match(html,/pickerPhase === 'anim' && !isMovieExcluded\(picked\)/);
- assert.match(html,/if \(isMovieExcluded\(m\)\) \{ closePickerModal\(\); return; \}/);
+ assert(html.includes("pickerPhase === 'anim' && !(state.excludeMarked && isMovieExcluded(picked))"));
+ assert(html.includes('if (state.excludeMarked && isMovieExcluded(m)) { closePickerModal(); return; }'));
 });

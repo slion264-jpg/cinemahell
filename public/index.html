@@ -85,11 +85,11 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Noto Sans KR', -apple-system, sans-serif; min-height: 100vh; }
 
-  .exclusion-toolbar { padding: 12px 24px 0; color: var(--text2); font-size: 12px; }
-  .exclusion-toolbar p { margin-top: 8px; line-height: 1.6; }
-  #exclusionStatus { margin-left: 8px; }
-  .exclude-movie-btn { display:block; width:100%; min-height:40px; margin-top:10px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); color:var(--text2); cursor:pointer; font:inherit; font-size:12px; }
-  .exclude-movie-btn:hover, .exclude-movie-btn:focus-visible { color:var(--text); border-color:var(--accent); }
+  .exclusion-status { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  .card-actions { display:flex; align-items:center; gap:5px; }
+  .exclude-icon { color:#fff; }
+  .exclude-icon.active { color:var(--gold); border-color:var(--gold); }
+  .exclude-icon:focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
   #seoContent { margin:24px; padding:16px; border:1px solid var(--border); border-radius:8px; color:var(--text2); font-size:12px; line-height:1.8; }
   #seoContent summary { cursor:pointer; color:var(--text); }
   #seoContent ul { padding-left:20px; margin-top:12px; }
@@ -606,7 +606,7 @@
     pointer-events: none;
     border-radius: 12px 12px 0 0;
   }
-  .movie-card:hover .card-overlay { opacity: 1; pointer-events: auto; }
+  .movie-card:hover .card-overlay, .movie-card:focus-within .card-overlay, .movie-card.has-exclusion .card-overlay { opacity: 1; pointer-events: auto; }
 
   /* 커뮤니티 pill — 하단 좌측 단일 배지 */
   .comm-pill {
@@ -1012,6 +1012,7 @@
     <div class="filter-row">
       <div class="filter-group">
         <span class="filter-label">기타</span>
+        <button class="filter-btn active" id="excludeMarkedBtn" onclick="toggleExcludeMarked()" aria-pressed="true" title="끄면 제외한 작품도 표시됩니다. X를 다시 누르면 복원됩니다. 제외 목록은 이 브라우저에 계정별로 저장됩니다.">제외한 작품 제외</button>
         <button class="filter-btn" id="excludeWatchedBtn" onclick="toggleExcludeWatched()">내가 본 작품 제외</button>
         <button class="filter-btn" id="showWatchedOnlyBtn" onclick="toggleShowWatchedOnly()">내가 본 작품만</button>
       </div>
@@ -1031,11 +1032,7 @@
   </div>
 </div>
 
-<div class="exclusion-toolbar">
-  <button id="excludedToggle" class="filter-btn" onclick="toggleExcludedView()" aria-pressed="false">제외한 작품 (0)</button>
-  <span id="exclusionStatus" role="status" aria-live="polite"></span>
-  <p id="exclusionHelp" hidden>‘다시 표시’를 누르면 복원됩니다. 제외 목록은 이 브라우저에만 저장되며, 로그인 계정별로 분리됩니다. 다른 기기와는 동기화되지 않습니다.</p>
-</div>
+<span id="exclusionStatus" class="exclusion-status" role="status" aria-live="polite"></span>
 <!-- STATS -->
 <div class="stats-bar">
   <span>총 <span class="stats-count" id="totalCount">0</span>편</span>
@@ -7962,7 +7959,7 @@ let state = {
   showWatchedOnly: false,
   excludedMovies: readExcludedMovies(null),
   exclusionUid: null,
-  showExcludedOnly: false,
+  excludeMarked: true,
 };
 
 // ============================================================
@@ -8021,11 +8018,12 @@ function toggleMovieExcluded(key) {
   catch (_) { alert('브라우저에 제외 목록을 저장할 수 없습니다. 저장 공간과 개인정보 설정을 확인해 주세요.'); return; }
   state.excludedMovies = next;
   closePickerModal();
-  document.getElementById('exclusionStatus').textContent = wasExcluded ? '작품을 다시 표시합니다.' : '작품을 제외했습니다. ‘제외한 작품’에서 복원할 수 있습니다.';
+  document.getElementById('exclusionStatus').textContent = wasExcluded ? '작품을 다시 표시합니다.' : '작품을 제외했습니다. ‘제외한 작품 제외’ 필터를 끄고 X를 다시 누르면 복원됩니다.';
   renderGrid();
 }
-function toggleExcludedView() {
-  state.showExcludedOnly = !state.showExcludedOnly;
+function toggleExcludeMarked() {
+  state.excludeMarked = !state.excludeMarked;
+  closePickerModal();
   renderGrid();
 }
 window.addEventListener('storage', e => {
@@ -8089,10 +8087,7 @@ function filterMovies(forPicker = false) {
   const { recommender, year, genre, platform } = state.filters;
   const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
   return RAW_DATA.filter(m => {
-    if (state.showExcludedOnly && !forPicker) {
-      return isMovieExcluded(m) && (!q || m.title.toLowerCase().includes(q));
-    }
-    if (isMovieExcluded(m)) return false;
+    if (state.excludeMarked && isMovieExcluded(m)) return false;
     if (state.showBookmarksOnly && !state.bookmarks.has(getMovieKey(m))) return false;
     if (state.excludeWatched && state.myRatings[getMovieKey(m)]) return false;
     if (state.showWatchedOnly && !state.myRatings[getMovieKey(m)]) return false;
@@ -8165,14 +8160,13 @@ function fetchTMDB(title, year, fallbackYear) {
 // ============================================================
 function renderGrid() {
   const filtered = sortMovies(filterMovies());
-  const excludedCount = new Set(RAW_DATA.filter(isMovieExcluded).map(getExclusionKey)).size;
   // Keep the public source complete; don't reveal hidden works through the archive in a personalized view.
   const archive = document.getElementById('seoContent');
-  if (archive) archive.hidden = state.excludedMovies.size > 0;
-  const exclusionBtn = document.getElementById('excludedToggle');
-  exclusionBtn.textContent = state.showExcludedOnly ? '전체 목록으로' : `제외한 작품 (${excludedCount})`;
-  exclusionBtn.setAttribute('aria-pressed', String(state.showExcludedOnly));
-  document.getElementById('exclusionHelp').hidden = !state.showExcludedOnly;
+  if (archive) archive.hidden = state.excludeMarked && state.excludedMovies.size > 0;
+  const exclusionBtn = document.getElementById('excludeMarkedBtn');
+  exclusionBtn.classList.toggle('active', state.excludeMarked);
+  exclusionBtn.setAttribute('aria-pressed', String(state.excludeMarked));
+  updateFilterBadge();
   const grid = document.getElementById('movieGrid');
   const totalEl = document.getElementById('totalCount');
   totalEl.textContent = filtered.length;
@@ -8180,12 +8174,13 @@ function renderGrid() {
   // 필터 설명
   const parts = [];
   if (state.showBookmarksOnly) parts.push('🔖 책갈피');
+  if (state.excludeMarked) parts.push('제외한 작품 제외');
   if (state.filters.recommender !== '전체') parts.push(state.filters.recommender);
   if (state.filters.year !== '전체') parts.push(state.filters.year + '년');
   if (state.filters.genre !== '전체') parts.push(state.filters.genre);
   if (state.filters.platform !== '전체') parts.push(state.filters.platform);
   if (state.search) parts.push(`"${state.search}"`);
-  document.getElementById('filterDesc').textContent = state.showExcludedOnly ? '제외한 작품 · 다른 필터는 잠시 적용하지 않습니다' : (parts.length ? parts.join(' · ') : '전체 목록');
+  document.getElementById('filterDesc').textContent = parts.length ? parts.join(' · ') : '전체 목록';
 
   if (filtered.length === 0) {
     grid.innerHTML = `<div class="empty-state"><div class="empty-icon">🎬</div><div class="empty-title">조건에 맞는 영화가 없습니다</div><div>필터를 변경해보세요</div></div>`;
@@ -8276,7 +8271,7 @@ function renderCard(m) {
   const ribbonSvg = `<svg class="ribbon-icon" viewBox="0 0 18 24" xmlns="http://www.w3.org/2000/svg"><path d="M2 2 H16 V22 L9 16 L2 22 Z"/></svg>`;
 
   return `
-<div class="movie-card ${isBookmarked ? 'bookmarked' : ''}" data-key="${key.replace(/"/g,'&quot;')}" onclick="if(window.innerWidth>640)window.open('${googleUrl}','_blank')" style="cursor:pointer">
+<div class="movie-card ${isBookmarked ? 'bookmarked' : ''} ${isMovieExcluded(m) ? 'has-exclusion' : ''}" data-key="${key.replace(/"/g,'&quot;')}" onclick="if(window.innerWidth>640)window.open('${googleUrl}','_blank')" style="cursor:pointer">
   <div class="poster-wrap">
     ${posterSrc ? `<img class="poster-img" src="${posterSrc}" alt="${cleanTitle}" loading="lazy" ${m.posterFit === 'contain' ? `style="${posterImageStyle(m)}"` : ''} onerror="this.style.display='none'">` : `<div class="poster-placeholder"><div class="ph-icon">🎬</div><div class="ph-title">${cleanTitle}</div></div>`}
     ${commPillHtml}
@@ -8285,8 +8280,13 @@ function renderCard(m) {
         <span style="font-size:11px;font-weight:700;letter-spacing:-0.5px">${myRating ? `☆ ${myRating}` : '☆'}</span>
         <div class="star-panel" id="sp_${key.replace(/[^a-zA-Z0-9]/g,'_')}"></div>
       </div>
-      <div class="bookmark-btn ${isBookmarked ? 'active' : ''}" onclick="event.stopPropagation();toggleBookmark(this.closest('.movie-card').dataset.key)">
-        ${ribbonSvg}
+      <div class="card-actions">
+        <button type="button" class="bookmark-btn exclude-icon ${isMovieExcluded(m) ? 'active' : ''}" aria-label="${isMovieExcluded(m) ? '작품 제외 취소' : '작품 제외'}" aria-pressed="${isMovieExcluded(m)}" title="${isMovieExcluded(m) ? '제외 취소' : '작품 제외'} · 이 브라우저에 계정별 저장" onclick="event.stopPropagation();toggleMovieExcluded(this.closest('.movie-card').dataset.key)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6L18 18M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+        <div class="bookmark-btn ${isBookmarked ? 'active' : ''}" onclick="event.stopPropagation();toggleBookmark(this.closest('.movie-card').dataset.key)">
+          ${ribbonSvg}
+        </div>
       </div>
     </div>
   </div>
@@ -8300,7 +8300,6 @@ function renderCard(m) {
     <div class="card-title"><span>${cleanTitle}${releaseYear ? ` (${releaseYear})` : ''}${m.subtitle ? `<span class="card-subtitle"> ${m.subtitle}</span>` : ''}</span></div>
     <div class="card-genres">${genreHtml}</div>
     <div class="platform-row">${platformHtml}</div>
-    <button type="button" class="exclude-movie-btn" onclick="event.stopPropagation();toggleMovieExcluded(this.closest('.movie-card').dataset.key)" title="제외 목록은 이 브라우저에 저장됩니다">${isMovieExcluded(m) ? '↶ 다시 표시' : '− 제외'}</button>
   </div>
 </div>`;
 }
@@ -8784,7 +8783,7 @@ function startPicker() {
       const picked = pool[Math.floor(Math.random() * pool.length)];
       pickerResultTimer = setTimeout(() => {
         pickerResultTimer = null;
-        if (pickerPhase === 'anim' && !isMovieExcluded(picked)) showPickerResult(picked);
+        if (pickerPhase === 'anim' && !(state.excludeMarked && isMovieExcluded(picked))) showPickerResult(picked);
       }, 350);
     }
   }
@@ -8822,7 +8821,7 @@ function playDrumSound() {
 }
 
 function showPickerResult(m) {
-  if (isMovieExcluded(m)) { closePickerModal(); return; }
+  if (state.excludeMarked && isMovieExcluded(m)) { closePickerModal(); return; }
   pickerPhase = 'result';
   document.getElementById('pickerPhaseAnim').style.display   = 'none';
   document.getElementById('pickerPhaseResult').style.display = '';
@@ -8863,6 +8862,7 @@ function toggleFilterDrawer() {
 function updateFilterBadge() {
   const f = state.filters;
   const count = [f.recommender, f.year, f.genre, f.platform].filter(v => v !== '전체').length
+    + (state.excludeMarked ? 1 : 0)
     + (state.excludeWatched ? 1 : 0)
     + (state.showWatchedOnly ? 1 : 0);
   const badge = document.getElementById('filterActiveCount');
