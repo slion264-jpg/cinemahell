@@ -75,49 +75,5 @@
         "who": "전찬일"
       }
     ]
-  },
-  "sources": {
-    "[\"세크리터리\",\"2002\"]": {
-      "broadcastUrl": "https://www.youtube.com/watch?v=wANqkxqm_Uc",
-      "broadcastLabel": "11월 13일 방송 원본 · 작품별 발언 미확인",
-      "critics": [
-        {
-          "publisher": "Rotten Tomatoes",
-          "score": "78%",
-          "scoreLabel": "Tomatometer · 평론가 긍정 평가 비율 · 150개 평론 (평균 점수 아님)",
-          "summary": "낯선 관계를 다룬 로맨틱 코미디에서 매기 질렌할의 연기가 돋보인다는 평가입니다.",
-          "url": "https://www.rottentomatoes.com/m/secretary",
-          "checkedAt": "2026-11-15"
-        }
-      ]
-    },
-    "[\"미스 리틀 선샤인\",\"2006\"]": {
-      "broadcastUrl": "https://www.youtube.com/watch?v=wANqkxqm_Uc",
-      "broadcastLabel": "11월 13일 방송 원본 · 작품별 발언 미확인",
-      "critics": [
-        {
-          "publisher": "Rotten Tomatoes",
-          "score": "91%",
-          "scoreLabel": "Tomatometer · 평론가 긍정 평가 비율 · 215개 평론 (평균 점수 아님)",
-          "summary": "배우들의 앙상블과 유쾌한 각본이 강점으로 꼽힙니다.",
-          "url": "https://www.rottentomatoes.com/m/little_miss_sunshine",
-          "checkedAt": "2026-11-15"
-        }
-      ]
-    },
-    "[\"호루몽\",\"2026\"]": {
-      "broadcastUrl": "https://www.youtube.com/watch?v=wANqkxqm_Uc",
-      "broadcastLabel": "11월 13일 방송 원본 · 작품별 발언 미확인",
-      "critics": [
-        {
-          "publisher": "씨네21",
-          "score": "7.00 / 10",
-          "scoreLabel": "전문가 평점 · 4명 참여",
-          "summary": "혐오와 차별에 맞서온 인물의 삶과 연대에 주목한 평이 있습니다.",
-          "url": "https://host.cine21.com/movie/info/?movie_id=63465",
-          "checkedAt": "2026-11-15"
-        }
-      ]
-    }
   }
 }
