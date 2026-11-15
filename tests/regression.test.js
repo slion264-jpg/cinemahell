@@ -15,7 +15,8 @@ function setup() {
     { title:'같은 영화 시즌 2 (2020)',year:'2026',date:'11.13',recommender:'전찬일'},
     { title:'미상',year:'2026',date:'11.13',recommender:'전찬일'},
     { title:'미상',year:'2025',date:'11.13',recommender:'전찬일'}];
-  const c = vm.createContext({ console, RAW_DATA: rows, window:{ addEventListener(){} }, alert(){throw Error('unexpected alert');}, renderGrid(){},closePickerModal(){this.closed=(this.closed||0)+1;},document:{getElementById:el},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)}, state:{excludedMovies:new Set(),exclusionUid:null,excludeMarked:true,filters:{recommender:'전체',year:'전체',genre:'전체',platform:'전체'},bookmarks:new Set(),myRatings:{},movieCache:{}} });
+  const c = vm.createContext({ console, RAW_DATA: rows, CANONICAL_DATA: rows, shellScope(){}, window:{ addEventListener(){} }, alert(){throw Error('unexpected alert');}, renderGrid(){},closePickerModal(){this.closed=(this.closed||0)+1;},document:{getElementById:el},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)}, state:{excludedMovies:new Set(),exclusionUid:null,excludeMarked:true,filters:{recommender:'전체',year:'전체',genre:'전체',platform:'전체'},bookmarks:new Set(),myRatings:{},movieCache:{}} });
+  c.shellIsWatched = m => !!c.state.myRatings[c.getMovieKey(m)];
   c.closePickerModal = () => { c.closed = (c.closed || 0) + 1; };
   const names=['parseTitle','getMovieKey','exclusionStorageKey','readExcludedMovies','getExclusionKey','isMovieExcluded','toggleMovieExcluded','toggleExcludeMarked','updateFilterBadge','filterMovies'];
   for (const name of names) {

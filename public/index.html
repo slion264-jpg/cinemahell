@@ -884,6 +884,7 @@
   }).catch(e => console.error('[FB] init error:', e));
 })();
 </script>
+<link rel="stylesheet" href="app-shell.css">
 </head>
 <body>
 
@@ -946,6 +947,9 @@
   </div>
 </header>
 
+<nav class="shell-nav" aria-label="주 메뉴"><button data-shell-tab="home">홈</button><button data-shell-tab="explore">탐색</button><button data-shell-tab="my">마이 시네마</button></nav>
+<section id="shellHome" class="shell-panel"></section><section id="shellMy" class="shell-panel" hidden></section>
+<div id="shellExplore" hidden>
 <!-- FILTERS -->
 <div class="filter-bar">
   <!-- 모바일 전용: 검색 + 필터 토글 버튼 -->
@@ -1061,6 +1065,8 @@
 <!-- GRID -->
 <div class="movie-grid" id="movieGrid"></div>
 
+</div>
+<div id="shellUndo" hidden role="status">작품을 제거했습니다.<button data-shell-action="undo">실행 취소</button></div>
 <!-- MODAL -->
 <div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
   <div class="modal" id="modal">
@@ -1150,6 +1156,7 @@
 .picker-unroll { animation: unrollPoster 0.7s cubic-bezier(0.22,1,0.36,1) both; }
 </style>
 
+<script src="app-shell.js"></script>
 <script>
 // ============================================================
 // RAW DATA
@@ -7944,6 +7951,7 @@ const RAW_DATA = [
 ];
 
 // ============================================================
+const CANONICAL_DATA = JSON.parse(JSON.stringify(RAW_DATA));
 // 상태 관리
 // ============================================================
 // TMDB_KEY는 GitHub Actions에서 캐시 빌드 시에만 사용 (build-tmdb-cache.js)
@@ -8007,10 +8015,11 @@ function isMovieExcluded(m) { return state.excludedMovies.has(getExclusionKey(m)
 window._setExclusionScope = function(uid) {
   if (uid !== state.exclusionUid) closePickerModal();
   state.exclusionUid = uid;
+  shellScope(uid);
   state.excludedMovies = readExcludedMovies(uid);
 };
 function toggleMovieExcluded(key) {
-  const movie = RAW_DATA.find(m => getMovieKey(m) === key);
+  const movie = [...RAW_DATA, ...CANONICAL_DATA].find(m => getMovieKey(m) === key);
   if (!movie) return;
   const id = getExclusionKey(movie);
   const next = new Set(state.excludedMovies);
@@ -8086,13 +8095,14 @@ function sortMovies(list) {
 }
 
 function filterMovies(forPicker = false) {
+  const ratedWorks = new Set([...CANONICAL_DATA, ...RAW_DATA].filter(m => !!state.myRatings[getMovieKey(m)]).map(getExclusionKey));
   const { recommender, year, genre, platform } = state.filters;
   const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
   return RAW_DATA.filter(m => {
     if (state.excludeMarked && isMovieExcluded(m)) return false;
     if (state.showBookmarksOnly && !state.bookmarks.has(getMovieKey(m))) return false;
-    if (state.excludeWatched && state.myRatings[getMovieKey(m)]) return false;
-    if (state.showWatchedOnly && !state.myRatings[getMovieKey(m)]) return false;
+    if (state.excludeWatched && shellIsWatched(m, ratedWorks)) return false;
+    if (state.showWatchedOnly && !shellIsWatched(m, ratedWorks)) return false;
     if (recommender !== '전체' && m.recommender !== recommender) return false;
     if (year !== '전체' && m.year !== year) return false;
     // 검색어: 제목에서 게스트명 제외한 순수 제목으로 매칭
@@ -8161,10 +8171,11 @@ function fetchTMDB(title, year, fallbackYear) {
 // 렌더링
 // ============================================================
 function renderGrid() {
+  renderShell();
   const filtered = sortMovies(filterMovies());
   // Keep the public source complete; don't reveal hidden works through the archive in a personalized view.
   const archive = document.getElementById('seoContent');
-  if (archive) archive.hidden = state.excludeMarked && state.excludedMovies.size > 0;
+  if (archive) archive.hidden = shellState.tab !== 'explore' || (state.excludeMarked && state.excludedMovies.size > 0);
   const exclusionBtn = document.getElementById('excludeMarkedBtn');
   exclusionBtn.classList.toggle('active', state.excludeMarked);
   exclusionBtn.setAttribute('aria-pressed', String(state.excludeMarked));
@@ -8890,6 +8901,7 @@ function setFilter(type, val) {
 }
 
 function toggleBookmarkView() {
+  shellSelect('explore');
   state.showBookmarksOnly = !state.showBookmarksOnly;
   const btn = document.getElementById('bookmarkToggle');
   btn.classList.toggle('active', state.showBookmarksOnly);
@@ -9074,9 +9086,11 @@ function saveEditsToStorage() {
 promoteKwakRecommendations(RAW_DATA);
 document.getElementById('bookmarkCount').textContent = state.bookmarks.size;
 
+shellInit();
+
 // TMDB 캐시 로드 후 movieCache 채우고 렌더링
 loadTMDBCache().then(() => {
-  RAW_DATA.forEach(m => loadMovieInfo(m));
+  shellRows().forEach(m => loadMovieInfo(m));
   renderGrid();
 });
 
