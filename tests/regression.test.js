@@ -96,3 +96,8 @@ test('exclusion changes and account switches invalidate the running picker',()=>
  assert(html.includes("pickerPhase === 'anim' && !(state.excludeMarked && isMovieExcluded(picked))"));
  assert(html.includes('if (state.excludeMarked && isMovieExcluded(m)) { closePickerModal(); return; }'));
 });
+
+test('touch and narrow layouts expose compact actions despite later base overlay rules',()=>{
+ assert.match(html, /@media \(max-width: 640px\) \{\s*\/\* 오버레이 항상 표시 \(모바일\) \*\/\s*\.movie-card \.card-overlay \{ opacity: 1; pointer-events: auto;/);
+ assert.match(html, /@media \(hover: none\) \{ \.movie-card \.card-overlay \{ opacity: 1; pointer-events: auto;/);
+});

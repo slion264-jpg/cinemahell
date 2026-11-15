@@ -522,7 +522,7 @@
 
   @media (max-width: 640px) {
     /* 오버레이 항상 표시 (모바일) */
-    .card-overlay { opacity: 1; pointer-events: auto; background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%); }
+    .movie-card .card-overlay { opacity: 1; pointer-events: auto; background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%); }
 
     /* 별점 패널: 별 사이즈 축소 + 카드 안에 맞게 위치 조정 */
     .star-wrap { width: 20px; height: 20px; }
@@ -607,6 +607,8 @@
     border-radius: 12px 12px 0 0;
   }
   .movie-card:hover .card-overlay, .movie-card:focus-within .card-overlay, .movie-card.has-exclusion .card-overlay { opacity: 1; pointer-events: auto; }
+
+  @media (hover: none) { .movie-card .card-overlay { opacity: 1; pointer-events: auto; } }
 
   /* 커뮤니티 pill — 하단 좌측 단일 배지 */
   .comm-pill {
