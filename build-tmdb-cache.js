@@ -19,6 +19,7 @@ const OUT_PATH = isCI
   : path.join(__dirname, 'github', 'cinemahell', 'public', 'tmdb-cache.json');
 
 const TMDB_ID_MAP = {
+  '브레이킹 배드__2008': { id: 1396, type: 'tv' }, // AMC original TV series, not El Camino
   '쇼군__2024':           { id: 126308, type: 'tv' }, // FX / Disney+ series
   '삼체__2024':           { id: 108545, type: 'tv' },
   '탄생__2022':           { id: 881677, type: 'movie' },
@@ -100,6 +101,7 @@ async function fetchTMDB(title, year) {
   // 0차: 수동 매핑
   if (mapEntry) {
     const data = await apiFetch(`https://api.themoviedb.org/3/${mapEntry.type}/${mapEntry.id}?api_key=${TMDB_KEY}&language=ko-KR`);
+    if (Number(data?.id) !== mapEntry.id) return null;
     return buildResult(data, mapEntry.type);
   }
 

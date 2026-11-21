@@ -1,5 +1,5 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');const html=fs.readFileSync('public/index.html','utf8'),code=fs.readFileSync('public/app-shell.js','utf8'),css=fs.readFileSync('public/app-shell.css','utf8');const canonical=require('../generate-seo').readRows(html);
-function setup({canonicalRows=canonical,overlayRows=canonicalRows.slice(-2)}={}){const storage=new Map(),els=new Map();const el=id=>{if(!els.has(id))els.set(id,{innerHTML:'',hidden:false,value:'',setAttribute(){}});return els.get(id)};const c=vm.createContext({CANONICAL_DATA:JSON.parse(JSON.stringify(canonicalRows)),RAW_DATA:JSON.parse(JSON.stringify(overlayRows)),state:{myRatings:{},bookmarks:new Set(),excludedMovies:new Set(),excludeMarked:true,movieCache:{},exclusionUid:null},document:{getElementById:el,querySelectorAll:()=>[],addEventListener(){}},window:{addEventListener(){}},location:{hash:'',search:''},history:{pushState(){}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},fetchTMDB:()=>null,posterImageStyle:()=>'object-fit:contain',renderGrid(){},alert(){throw Error('alert')},URLSearchParams});for(const name of ['parseTitle','getMovieKey','getExclusionKey','isMovieExcluded']){const a=html.indexOf('function '+name+'('),b=html.indexOf('\n}',a)+2;vm.runInContext(html.slice(a,b),c);}vm.runInContext(code,c);return {c,el,storage,run:s=>vm.runInContext(s,c)};}
+function setup({canonicalRows=canonical,overlayRows=canonicalRows.slice(-2)}={}){const storage=new Map(),els=new Map();const el=id=>{if(!els.has(id))els.set(id,{innerHTML:'',hidden:false,value:'',setAttribute(){}});return els.get(id)};const c=vm.createContext({CANONICAL_DATA:JSON.parse(JSON.stringify(canonicalRows)),RAW_DATA:JSON.parse(JSON.stringify(overlayRows)),state:{myRatings:{},bookmarks:new Set(),excludedMovies:new Set(),excludeMarked:true,movieCache:{},exclusionUid:null},document:{getElementById:el,querySelectorAll:()=>[],addEventListener(){}},window:{addEventListener(){}},location:{hash:'',search:''},history:{pushState(){}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},fetchTMDB:()=>null,posterImageStyle:()=>'object-fit:contain',renderGrid(){},alert(){throw Error('alert')},URLSearchParams});for(const name of ['parseTitle','getMovieKey','getExclusionKey','isMovieExcluded','readMovieInfo','applyCanonicalCorrections']){const a=html.indexOf('function '+name+'('),b=html.indexOf('\n}',a)+2;vm.runInContext(html.slice(a,b),c);}vm.runInContext(code,c);return {c,el,storage,run:s=>vm.runInContext(s,c)};}
 test('canonical snapshot precedes edit overlay; original data/SEO contract preserved',()=>{
   const snapshot=html.indexOf('const CANONICAL_DATA'),overlay=html.indexOf('(function loadEdits');
   assert(snapshot>=0&&overlay>snapshot);
@@ -61,4 +61,70 @@ test('expanded My lists retain source-backed reviews while collapsed shelves sta
   shelf=el('shellMy').innerHTML;
   assert.equal((shelf.match(/class="shell-review"/g)||[]).length,1);
   assert.match(shelf,/https:\/\/www\.rottentomatoes\.com\/m\/secretary/);
+});
+
+test('corrected TV series keeps old recommendation and work keys in Home, Explore and My',()=>{
+  const old={title:'브레이킹 배드 (2019)',recommender:'거의없다',year:'2026',date:'11.20',
+    posterOverride:'https://example.invalid/film.jpg',infoOverride:{mediaType:'movie',tmdbId:999},searchUrl:'https://example.invalid/old'};
+  const fixed=canonical.filter(m=>m.date==='11.20'&&String(m.year)==='2026').find(m=>m.legacyTitle===old.title);
+  assert(fixed);
+  const other={title:'엘 카미노: 브레이킹 배드 무비 (2019)',recommender:'거의없다',year:'2026',date:'11.20',untouched:true};
+  const {run,c,el,storage}=setup({canonicalRows:[fixed],overlayRows:[old,other]});
+  const before=JSON.stringify([old,other]);
+  storage.set('cinemaEdits',before);
+  c.RAW_DATA=run('applyCanonicalCorrections(RAW_DATA,CANONICAL_DATA)');
+  assert.equal(storage.get('cinemaEdits'),before);
+  const actual=c.RAW_DATA[0];
+  assert.equal(actual.title,'브레이킹 배드 (2008)');
+  assert.equal(actual.mediaType,'tv');
+  assert.equal(actual.tmdbId,1396);
+  assert.equal(actual.infoOverride,undefined);
+  assert.equal(actual.searchUrl,undefined);
+  assert.equal(c.RAW_DATA[1].title,other.title);
+  assert.equal(c.RAW_DATA[1].untouched,true);
+  assert.equal(c.applyCanonicalCorrections([],c.CANONICAL_DATA).length,0);
+  assert.equal(run('shellRows().length'),2);
+  const movieKey='브레이킹 배드 (2019)__거의없다__2026__11.20';
+  const workKey=JSON.stringify(['브레이킹 배드','2019','']);
+  assert.equal(c.getMovieKey(actual),movieKey);
+  assert.equal(c.getMovieKey(fixed),movieKey);
+  assert.equal(c.getExclusionKey(actual),workKey);
+  assert.equal(c.getExclusionKey(fixed),workKey);
+  assert.notEqual(c.getExclusionKey(c.RAW_DATA[1]),workKey);
+  c.state.bookmarks.add(movieKey);
+  c.state.myRatings[movieKey]=4;
+  assert.equal(run('shellIsWatched(CANONICAL_DATA[0])'),true);
+  c.state.myRatings={};
+  storage.set('cinemaWatched:v1:guest',JSON.stringify({[workKey]:true}));
+  run('shellScope(null);renderShell()');
+  assert.equal(run('shellIsWatched(CANONICAL_DATA[0])'),true);
+  assert.match(el('shellHome').innerHTML,/TV 드라마 · 2008/);
+  assert.match(el('shellMy').innerHTML,/ggFHVNu6YYI5L9pCfOacjizRGt\.jpg/);
+  assert.doesNotMatch(el('shellMy').innerHTML,/example\.invalid\/film/);
+  assert.match(decodeURIComponent(c.shellSearch(actual)),/브레이킹 배드 \(2008\) 미국 TV 드라마/);
+  c.state.excludedMovies.add(workKey);
+  run('renderShell()');
+  assert.match(el('shellHome').innerHTML,/모두 제거/);
+  assert.doesNotMatch(el('shellMy').innerHTML,/class="shell-card"/);
+});
+
+test('pinned Breaking Bad TV ID rejects mismatched runtime metadata and has a poster fallback',()=>{
+  const fixed=canonical.find(m=>m.legacyTitle==='브레이킹 배드 (2019)');
+  const {c}=setup();
+  c.fetchTMDB=()=>({mediaType:'movie',tmdbId:1396,poster:'wrong-movie'});
+  assert.equal(c.readMovieInfo(fixed),null);
+  assert.doesNotMatch(c.shellCard(fixed),/wrong-movie/);
+  assert.match(c.shellCard(fixed),/ggFHVNu6YYI5L9pCfOacjizRGt\.jpg/);
+  c.fetchTMDB=()=>({mediaType:'tv',tmdbId:1396,poster:'right-series'});
+  assert.equal(c.readMovieInfo(fixed).poster,'right-series');
+  assert.match(fs.readFileSync('build-tmdb-cache.js','utf8'),/'브레이킹 배드__2008': \{ id: 1396, type: 'tv' \}/);
+});
+
+test('mixed-cache old HTML can still render cards with the newer app shell',()=>{
+  const {c}=setup();
+  const movie={title:'캐시 조합 검사 (2026)',date:'11.20',year:'2026',recommender:'라이너'};
+  c.readMovieInfo=undefined;
+  c.fetchTMDB=()=>({poster:'https://example.com/stable.jpg'});
+  assert.match(c.shellCard(movie),/stable\.jpg/);
+  assert.match(html,/<script src="app-shell\.js\?v=tv-series-20261121"/);
 });

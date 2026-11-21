@@ -102,3 +102,24 @@ test('touch and narrow layouts expose compact actions despite later base overlay
  assert.match(html, /@media \(max-width: 640px\) \{\s*\/\* 오버레이 항상 표시 \(모바일\) \*\/\s*\.movie-card \.card-overlay \{ opacity: 1; pointer-events: auto;/);
  assert.match(html, /@media \(hover: none\) \{ \.movie-card \.card-overlay \{ opacity: 1; pointer-events: auto;/);
 });
+
+test('reviewed dated page is linked, sitemap-listed and crawlable without scripts',()=>{
+ const episode='/broadcasts/2026-11-20.html';
+ const canonical='https://mbshow.kr'+episode;
+ const page=fs.readFileSync(require('node:path').join(__dirname,'../public',episode),'utf8');
+ const {generateBroadcastPage}=require('../generate-seo');
+ assert.equal(page,generateBroadcastPage(html,'2026-11-20'));
+ assert.match(html,/<a href="\/broadcasts\/2026-11-20\.html">/);
+ assert.match(html,/<li><strong>2026년 11월 20일 방송<\/strong>[^\n]+브레이킹 배드 \(2008\) · TV 드라마/);
+ assert.doesNotMatch(html,/<li><strong>2026년 11월 20일 방송<\/strong>[^\n]+브레이킹 배드 \(2019\)/);
+ const sitemap=fs.readFileSync(require('node:path').join(__dirname,'../public/sitemap.xml'),'utf8');
+ assert(sitemap.includes('<loc>'+canonical+'</loc>'));
+ assert(page.includes('<link rel="canonical" href="'+canonical+'">'));
+ assert.match(page,/<h1>2026년 11월 20일 시네마지옥 추천작/);
+ assert.match(page,/브레이킹 배드 \(2008\).*TV 드라마.*거의없다 추천/);
+ assert.match(page,/youtube\.com\/watch\?v=YVSmXv4Pv74&amp;t=11776s/);
+ const graph=JSON.parse(page.match(/<script type="application\/ld\+json">([^\n]+)<\/script>/)[1]);
+ assert.equal(graph.mainEntity.itemListElement[1].item['@type'],'TVSeries');
+ assert.equal(graph.mainEntity.itemListElement[1].item.startDate,'2008-01-20');
+ assert.equal(graph.mainEntity.itemListElement[1].item.sameAs.includes('https://www.netflix.com/kr/title/70143836'),true);
+});
